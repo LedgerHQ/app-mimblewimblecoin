@@ -22,6 +22,10 @@
 // Error type mask
 #define ERROR_TYPE_MASK 0xF000
 
+// Length error
+#ifndef ERR_APD_LEN
+#define ERR_APD_LEN 0x6700
+#endif
 
 // Constants
 
