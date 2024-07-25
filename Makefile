@@ -13,8 +13,8 @@ APP_LOAD_PARAMS += $(COMMON_LOAD_PARAMS)
 
 # Application version
 APPVERSION_M = 7
-APPVERSION_N = 4
-APPVERSION_P = 1
+APPVERSION_N = 5
+APPVERSION_P = 0
 APPVERSION = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
 
 # Emulator flags
@@ -251,10 +251,6 @@ else
 
 	# Define printf as nothing
 	DEFINES += PRINTF\(...\)=
-	
-	# Add security review banner. To be removed once Ledger security review is done.
-	APP_LOAD_PARAMS += --tlvraw 9F:01
-	DEFINES += HAVE_PENDING_REVIEW_SCREEN
 endif
 
 # Define stack canary
