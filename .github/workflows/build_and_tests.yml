@@ -1,0 +1,637 @@
+name: Build and perform unit and functional tests
+
+on: [push, pull_request]
+
+jobs:
+  job_build_debug:
+    name: Build debug
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+
+      - name: Build Nano S MimbleWimble Coin app
+        run: |
+          make DEBUG=1 CURRENCY=mimblewimble_coin
+
+      - name: Upload Nano S MimbleWimble Coin app
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-nanos
+          path: bin
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Nano S MimbleWimble Coin floonet app
+        run: |
+          make DEBUG=1 CURRENCY=mimblewimble_coin_floonet
+
+      - name: Upload Nano S MimbleWimble Coin floonet app
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-floonet-nanos
+          path: bin
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Nano X MimbleWimble Coin app
+        run: |
+          make DEBUG=1 BOLOS_SDK=$NANOX_SDK CURRENCY=mimblewimble_coin
+
+      - name: Upload Nano X MimbleWimble Coin app
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-nanox
+          path: bin
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Nano X MimbleWimble Coin floonet app
+        run: |
+          make DEBUG=1 BOLOS_SDK=$NANOX_SDK CURRENCY=mimblewimble_coin_floonet
+
+      - name: Upload Nano X MimbleWimble Coin floonet app
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-floonet-nanox
+          path: bin
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Nano S Plus MimbleWimble Coin app
+        run: |
+          make DEBUG=1 BOLOS_SDK=$NANOSP_SDK CURRENCY=mimblewimble_coin
+
+      - name: Upload Nano S Plus MimbleWimble Coin app
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-nanosplus
+          path: bin
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Nano S Plus MimbleWimble Coin floonet app
+        run: |
+          make DEBUG=1 BOLOS_SDK=$NANOSP_SDK CURRENCY=mimblewimble_coin_floonet
+
+      - name: Upload Nano S Plus MimbleWimble Coin floonet app
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-floonet-nanosplus
+          path: bin
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Stax MimbleWimble Coin app
+        run: |
+          make DEBUG=1 BOLOS_SDK=$STAX_SDK CURRENCY=mimblewimble_coin
+
+      - name: Upload Stax MimbleWimble Coin app
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-stax
+          path: bin
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Stax MimbleWimble Coin floonet app
+        run: |
+          make DEBUG=1 BOLOS_SDK=$STAX_SDK CURRENCY=mimblewimble_coin_floonet
+
+      - name: Upload Stax MimbleWimble Coin floonet app
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-floonet-stax
+          path: bin
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Flex MimbleWimble Coin app
+        run: |
+          make DEBUG=1 BOLOS_SDK=$FLEX_SDK CURRENCY=mimblewimble_coin
+
+      - name: Upload Flex MimbleWimble Coin app
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-flex
+          path: bin
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Flex MimbleWimble Coin floonet app
+        run: |
+          make DEBUG=1 BOLOS_SDK=$FLEX_SDK CURRENCY=mimblewimble_coin_floonet
+
+      - name: Upload Flex MimbleWimble Coin floonet app
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-floonet-flex
+          path: bin
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+  job_scan_build:
+    name: Clang Static Analyzer
+    needs: job_build_debug
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Nano S MimbleWimble Coin app with Clang Static Analyzer
+        run: |
+          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default CURRENCY=mimblewimble_coin
+
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: scan-build
+          path: scan-build
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Nano S MimbleWimble Coin floonet app with Clang Static Analyzer
+        run: |
+          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default CURRENCY=mimblewimble_coin_floonet
+
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: scan-build
+          path: scan-build
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Nano X MimbleWimble Coin app with Clang Static Analyzer
+        run: |
+          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default BOLOS_SDK=$NANOX_SDK CURRENCY=mimblewimble_coin
+
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: scan-build
+          path: scan-build
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Nano X MimbleWimble Coin floonet app with Clang Static Analyzer
+        run: |
+          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default BOLOS_SDK=$NANOX_SDK CURRENCY=mimblewimble_coin_floonet
+
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: scan-build
+          path: scan-build
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Nano S Plus MimbleWimble Coin app with Clang Static Analyzer
+        run: |
+          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default BOLOS_SDK=$NANOSP_SDK CURRENCY=mimblewimble_coin
+
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: scan-build
+          path: scan-build
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Nano S Plus MimbleWimble Coin floonet app with Clang Static Analyzer
+        run: |
+          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default BOLOS_SDK=$NANOSP_SDK CURRENCY=mimblewimble_coin_floonet
+
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: scan-build
+          path: scan-build
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Stax MimbleWimble Coin app with Clang Static Analyzer
+        run: |
+          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default BOLOS_SDK=$STAX_SDK CURRENCY=mimblewimble_coin
+
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: scan-build
+          path: scan-build
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Stax MimbleWimble Coin floonet app with Clang Static Analyzer
+        run: |
+          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default BOLOS_SDK=$STAX_SDK CURRENCY=mimblewimble_coin_floonet
+
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: scan-build
+          path: scan-build
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Flex MimbleWimble Coin app with Clang Static Analyzer
+        run: |
+          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default BOLOS_SDK=$FLEX_SDK CURRENCY=mimblewimble_coin
+
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: scan-build
+          path: scan-build
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+      - name: Build Flex MimbleWimble Coin floonet app with Clang Static Analyzer
+        run: |
+          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default BOLOS_SDK=$FLEX_SDK CURRENCY=mimblewimble_coin_floonet
+
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: scan-build
+          path: scan-build
+
+      - name: Cleanup the repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git clean -dxf
+
+  job_unit_test:
+    name: Unit test
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          apk add --update-cache openssl-dev
+
+      - name: Build unit tests
+        run: |
+          cmake -Btests/unit_tests/build -Htests/unit_tests/ && make -C tests/unit_tests/build/
+
+      - name: Run unit tests
+        run: |
+          make -C tests/unit_tests/build test
+
+  job_functional_test:
+    name: Functional test
+    needs: job_build_debug
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/speculos:latest
+      options: --entrypoint /bin/bash
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          apt update -q && apt install -qy curl netcat-traditional nodejs npm
+          npm i @ledgerhq/hw-transport-node-speculos
+
+      - name: Download Nano S MimbleWimble Coin app
+        uses: actions/download-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-nanos
+          path: bin-mimblewimble-coin-nanos
+
+      - name: Run Speculos
+        run: |
+          /speculos/speculos.py --model nanos --display headless --seed "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" bin-mimblewimble-coin-nanos/app.elf 2>speculos.log &
+          echo $! >/tmp/speculos.pid
+          timeout 10 sh -c 'until nc -z 127.0.0.1 9999; do sleep 1; done'
+
+      - name: Run tests with Nano S MimbleWimble Coin app
+        run: |
+          node tests/functional_tests/main.js mimblewimble_coin speculos nanos
+
+      - name: Upload Speculos log
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: speculos-mimblewimble-coin-nanos-log
+          path: speculos.log
+
+      - name: Kill Speculos
+        run: |
+          kill -9 $(cat /tmp/speculos.pid)
+
+      - name: Download Nano S MimbleWimble Coin floonet app
+        uses: actions/download-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-floonet-nanos
+          path: bin-mimblewimble-coin-floonet-nanos
+
+      - name: Run Speculos
+        run: |
+          /speculos/speculos.py --model nanos --display headless --seed "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" bin-mimblewimble-coin-floonet-nanos/app.elf 2>speculos.log &
+          echo $! >/tmp/speculos.pid
+          timeout 10 sh -c 'until nc -z 127.0.0.1 9999; do sleep 1; done'
+
+      - name: Run tests with Nano S MimbleWimble Coin floonet app
+        run: |
+          node tests/functional_tests/main.js mimblewimble_coin_floonet speculos nanos
+
+      - name: Upload Speculos log
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: speculos-mimblewimble-coin-floonet-nanos-log
+          path: speculos.log
+
+      - name: Kill Speculos
+        run: |
+          kill -9 $(cat /tmp/speculos.pid)
+
+      - name: Download Nano X MimbleWimble Coin app
+        uses: actions/download-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-nanox
+          path: bin-mimblewimble-coin-nanox
+
+      - name: Run Speculos
+        run: |
+          /speculos/speculos.py --model nanox --display headless --seed "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" bin-mimblewimble-coin-nanox/app.elf 2>speculos.log &
+          echo $! >/tmp/speculos.pid
+          timeout 10 sh -c 'until nc -z 127.0.0.1 9999; do sleep 1; done'
+
+      - name: Run tests with Nano X MimbleWimble Coin app
+        run: |
+          node tests/functional_tests/main.js mimblewimble_coin speculos nanox
+
+      - name: Upload Speculos log
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: speculos-mimblewimble-coin-nanox-log
+          path: speculos.log
+
+      - name: Kill Speculos
+        run: |
+          kill -9 $(cat /tmp/speculos.pid)
+
+      - name: Download Nano X MimbleWimble Coin floonet app
+        uses: actions/download-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-floonet-nanox
+          path: bin-mimblewimble-coin-floonet-nanox
+
+      - name: Run Speculos
+        run: |
+          /speculos/speculos.py --model nanox --display headless --seed "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" bin-mimblewimble-coin-floonet-nanox/app.elf 2>speculos.log &
+          echo $! >/tmp/speculos.pid
+          timeout 10 sh -c 'until nc -z 127.0.0.1 9999; do sleep 1; done'
+
+      - name: Run tests with Nano X MimbleWimble Coin floonet app
+        run: |
+          node tests/functional_tests/main.js mimblewimble_coin_floonet speculos nanox
+
+      - name: Upload Speculos log
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: speculos-mimblewimble-coin-floonet-nanox-log
+          path: speculos.log
+
+      - name: Kill Speculos
+        run: |
+          kill -9 $(cat /tmp/speculos.pid)
+
+      - name: Download Nano S Plus MimbleWimble Coin app
+        uses: actions/download-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-nanosplus
+          path: bin-mimblewimble-coin-nanosplus
+
+      - name: Run Speculos
+        run: |
+          /speculos/speculos.py --model nanosp --display headless --seed "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" bin-mimblewimble-coin-nanosplus/app.elf 2>speculos.log &
+          echo $! >/tmp/speculos.pid
+          timeout 10 sh -c 'until nc -z 127.0.0.1 9999; do sleep 1; done'
+
+      - name: Run tests with Nano S Plus MimbleWimble Coin app
+        run: |
+          node tests/functional_tests/main.js mimblewimble_coin speculos nanosp
+
+      - name: Upload Speculos log
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: speculos-mimblewimble-coin-nanosplus-log
+          path: speculos.log
+
+      - name: Kill Speculos
+        run: |
+          kill -9 $(cat /tmp/speculos.pid)
+
+      - name: Download Nano S Plus MimbleWimble Coin floonet app
+        uses: actions/download-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-floonet-nanosplus
+          path: bin-mimblewimble-coin-floonet-nanosplus
+
+      - name: Run Speculos
+        run: |
+          /speculos/speculos.py --model nanosp --display headless --seed "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" bin-mimblewimble-coin-floonet-nanosplus/app.elf 2>speculos.log &
+          echo $! >/tmp/speculos.pid
+          timeout 10 sh -c 'until nc -z 127.0.0.1 9999; do sleep 1; done'
+
+      - name: Run tests with Nano S Plus MimbleWimble Coin floonet app
+        run: |
+          node tests/functional_tests/main.js mimblewimble_coin_floonet speculos nanosp
+
+      - name: Upload Speculos log
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: speculos-mimblewimble-coin-floonet-nanosplus-log
+          path: speculos.log
+
+      - name: Kill Speculos
+        run: |
+          kill -9 $(cat /tmp/speculos.pid)
+
+      - name: Download Stax MimbleWimble Coin app
+        uses: actions/download-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-stax
+          path: bin-mimblewimble-coin-stax
+
+      - name: Run Speculos
+        run: |
+          /speculos/speculos.py --model stax --display headless --seed "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" bin-mimblewimble-coin-stax/app.elf 2>speculos.log &
+          echo $! >/tmp/speculos.pid
+          timeout 10 sh -c 'until nc -z 127.0.0.1 9999; do sleep 1; done'
+
+      - name: Run tests with Stax MimbleWimble Coin app
+        run: |
+          node tests/functional_tests/main.js mimblewimble_coin speculos stax
+
+      - name: Upload Speculos log
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: speculos-mimblewimble-coin-stax-log
+          path: speculos.log
+
+      - name: Kill Speculos
+        run: |
+          kill -9 $(cat /tmp/speculos.pid)
+
+      - name: Download Stax MimbleWimble Coin floonet app
+        uses: actions/download-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-floonet-stax
+          path: bin-mimblewimble-coin-floonet-stax
+
+      - name: Run Speculos
+        run: |
+          /speculos/speculos.py --model stax --display headless --seed "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" bin-mimblewimble-coin-floonet-stax/app.elf 2>speculos.log &
+          echo $! >/tmp/speculos.pid
+          timeout 10 sh -c 'until nc -z 127.0.0.1 9999; do sleep 1; done'
+
+      - name: Run tests with Stax MimbleWimble Coin floonet app
+        run: |
+          node tests/functional_tests/main.js mimblewimble_coin_floonet speculos stax
+
+      - name: Upload Speculos log
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: speculos-mimblewimble-coin-floonet-stax-log
+          path: speculos.log
+
+      - name: Kill Speculos
+        run: |
+          kill -9 $(cat /tmp/speculos.pid)
+
+      - name: Download Flex MimbleWimble Coin app
+        uses: actions/download-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-flex
+          path: bin-mimblewimble-coin-flex
+
+      - name: Run Speculos
+        run: |
+          /speculos/speculos.py --model flex --display headless --seed "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" bin-mimblewimble-coin-flex/app.elf 2>speculos.log &
+          echo $! >/tmp/speculos.pid
+          timeout 10 sh -c 'until nc -z 127.0.0.1 9999; do sleep 1; done'
+
+      - name: Run tests with Flex MimbleWimble Coin app
+        run: |
+          node tests/functional_tests/main.js mimblewimble_coin speculos flex
+
+      - name: Upload Speculos log
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: speculos-mimblewimble-coin-flex-log
+          path: speculos.log
+
+      - name: Kill Speculos
+        run: |
+          kill -9 $(cat /tmp/speculos.pid)
+
+      - name: Download Flex MimbleWimble Coin floonet app
+        uses: actions/download-artifact@v3
+        with:
+          name: app-debug-mimblewimble-coin-floonet-flex
+          path: bin-mimblewimble-coin-floonet-flex
+
+      - name: Run Speculos
+        run: |
+          /speculos/speculos.py --model flex --display headless --seed "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" bin-mimblewimble-coin-floonet-flex/app.elf 2>speculos.log &
+          echo $! >/tmp/speculos.pid
+          timeout 10 sh -c 'until nc -z 127.0.0.1 9999; do sleep 1; done'
+
+      - name: Run tests with Flex MimbleWimble Coin floonet app
+        run: |
+          node tests/functional_tests/main.js mimblewimble_coin_floonet speculos flex
+
+      - name: Upload Speculos log
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: speculos-mimblewimble-coin-floonet-flex-log
+          path: speculos.log
+
+      - name: Kill Speculos
+        run: |
+          kill -9 $(cat /tmp/speculos.pid)

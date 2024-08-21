@@ -1,3 +1,6 @@
+// Install dependencies: npm i @ledgerhq/hw-transport-node-speculos @ledgerhq/hw-transport-node-hid
+// Run: node main.js mimblewimble_coin speculos nanos
+
 // Use strict
 "use strict";
 
@@ -5,24 +8,24 @@
 // Requires
 const SpeculosTransport = require("@ledgerhq/hw-transport-node-speculos")["default"];
 const http = require("http");
-const crypto = require("crypto");
-const Blake2b = require("./BLAKE2b.min.js");
-const Ed25519 = require("./Ed25519.min.js");
-const X25519 = require("./X25519.min.js");
-const Secp256k1Zkp = require("./secp256k1-zkp.min.js");
-const BigNumber = require("./bignumber.js-9.0.2.min.js");
-const sha256 = require("./js-sha256-0.9.0.min.js");
-const Common = require("./common.min.js");
-const Identifier = require("./identifier.min.js");
-const Crypto = require("./crypto.min.js");
-const Seed = require("./seed.min.js");
-const Tor = require("./tor.min.js");
-const Mqs = require("./mqs.min.js");
-const Slatepack = require("./slatepack.min.js");
-const Consensus = require("./consensus.min.js");
-const NewProofBuilder = require("./new_proof_builder.min.js");
-const Slate = require("./slate.min.js");
-const SlateKernel = require("./slate_kernel.min.js");
+const crypto = require("crypto")["webcrypto"];
+const Blake2b = require("./BLAKE2b-0.0.2.js");
+const Ed25519 = require("./Ed25519-0.0.22.js");
+const X25519 = require("./X25519-0.0.23.js");
+const Secp256k1Zkp = require("./secp256k1-zkp-0.0.29.js");
+const BigNumber = require("./bignumber.js-9.1.1.js");
+const sha256 = require("./js-sha256-0.10.0.js");
+const Common = require("./common.js");
+const Identifier = require("./identifier.js");
+const Crypto = require("./crypto.js");
+const Seed = require("./seed.js");
+const Tor = require("./tor.js");
+const Mqs = require("./mqs.js");
+const Slatepack = require("./slatepack.js");
+const Consensus = require("./consensus.js");
+const NewProofBuilder = require("./new_proof_builder.js");
+const Slate = require("./slate.js");
+const SlateKernel = require("./slate_kernel.js");
 
 
 // Constants
@@ -84,14 +87,8 @@ const REQUEST_CONTINUE_TRANSACTION_APPLY_OFFSET_INSTRUCTION = REQUEST_CONTINUE_T
 // Request continue transaction get public key instruction
 const REQUEST_CONTINUE_TRANSACTION_GET_PUBLIC_KEY_INSTRUCTION = REQUEST_CONTINUE_TRANSACTION_APPLY_OFFSET_INSTRUCTION + 1;
 
-// Request continue transaction get encrypted secret nonce instruction
-const REQUEST_CONTINUE_TRANSACTION_GET_ENCRYPTED_SECRET_NONCE_INSTRUCTION = REQUEST_CONTINUE_TRANSACTION_GET_PUBLIC_KEY_INSTRUCTION + 1;
-
-// Request continue transaction set encrypted secret nonce instruction
-const REQUEST_CONTINUE_TRANSACTION_SET_ENCRYPTED_SECRET_NONCE_INSTRUCTION = REQUEST_CONTINUE_TRANSACTION_GET_ENCRYPTED_SECRET_NONCE_INSTRUCTION + 1;
-
 // Request continue transaction get public nonce instruction
-const REQUEST_CONTINUE_TRANSACTION_GET_PUBLIC_NONCE_INSTRUCTION = REQUEST_CONTINUE_TRANSACTION_SET_ENCRYPTED_SECRET_NONCE_INSTRUCTION + 1;
+const REQUEST_CONTINUE_TRANSACTION_GET_PUBLIC_NONCE_INSTRUCTION = REQUEST_CONTINUE_TRANSACTION_GET_PUBLIC_KEY_INSTRUCTION + 1;
 
 // Request continue transaction get message signature instruction
 const REQUEST_CONTINUE_TRANSACTION_GET_MESSAGE_SIGNATURE_INSTRUCTION = REQUEST_CONTINUE_TRANSACTION_GET_PUBLIC_NONCE_INSTRUCTION + 1;
@@ -99,11 +96,11 @@ const REQUEST_CONTINUE_TRANSACTION_GET_MESSAGE_SIGNATURE_INSTRUCTION = REQUEST_C
 // Request finish transaction instruction
 const REQUEST_FINISH_TRANSACTION_INSTRUCTION = REQUEST_CONTINUE_TRANSACTION_GET_MESSAGE_SIGNATURE_INSTRUCTION + 1;
 
-// Request get MQS timestamp signature instruction
-const REQUEST_GET_MQS_TIMESTAMP_SIGNATURE_INSTRUCTION = REQUEST_FINISH_TRANSACTION_INSTRUCTION + 1;
+// Request get MQS challenge signature instruction
+const REQUEST_GET_MQS_CHALLENGE_SIGNATURE_INSTRUCTION = REQUEST_FINISH_TRANSACTION_INSTRUCTION + 1;
 
-// Request get Tor certificate signature instruction
-const REQUEST_GET_TOR_CERTIFICATE_SIGNATURE_INSTRUCTION = REQUEST_GET_MQS_TIMESTAMP_SIGNATURE_INSTRUCTION + 1;
+// Request get login challenge signature instruction
+const REQUEST_GET_LOGIN_CHALLENGE_SIGNATURE_INSTRUCTION = REQUEST_GET_MQS_CHALLENGE_SIGNATURE_INSTRUCTION + 1;
 
 // No parameter
 const NO_PARAMETER = 0;
@@ -132,17 +129,11 @@ const MQS_PAYMENT_PROOF_TYPE = NO_PAYMENT_PROOF_TYPE + 1;
 // Tor payment proof type
 const TOR_PAYMENT_PROOF_TYPE = MQS_PAYMENT_PROOF_TYPE + 1;
 
-// Slatepack payment proof type
-const SLATEPACK_PAYMENT_PROOF_TYPE = TOR_PAYMENT_PROOF_TYPE + 1;
-
 // MQS address type
 const MQS_ADDRESS_TYPE = 0;
 
 // Tor address type
 const TOR_ADDRESS_TYPE = MQS_ADDRESS_TYPE + 1;
-
-// Slatepack address type
-const SLATEPACK_ADDRESS_TYPE = TOR_ADDRESS_TYPE + 1;
 
 // Sending transaction message type
 const SENDING_TRANSACTION_MESSAGE_TYPE = 0;
@@ -190,45 +181,12 @@ const DEFAULT_CURRENCY = "mimblewimble_coin";
 		
 			// Break
 			break;
-		
-		// Grin
-		case "grin":
-		
-			// Set consensus's get wallet type
-			Consensus.getWalletType = function() {
 			
-				// Return Grin wallet type
-				return Consensus.GRIN_WALLET_TYPE;
-			};
-		
-			// Break
-			break;
-		
-		// Grin testnet
-		case "grin_testnet":
-		
-			// Set consensus's get wallet type
-			Consensus.getWalletType = function() {
-			
-				// Return Grin wallet type
-				return Consensus.GRIN_WALLET_TYPE;
-			};
-			
-			// Set consensus's get netwotk type
-			Consensus.getNetworkType = function() {
-			
-				// Return testnet network type
-				return Consensus.TESTNET_NETWORK_TYPE;
-			};
-		
-			// Break
-			break;
-		
 		// Default
 		default:
 		
 			// Log message
-			console.log("Invalid currency. Supported currencies are: mimblewimble_coin, mimblewimble_coin_floonet, grin, and grin_testnet");
+			console.log("Invalid currency. Supported currencies are: mimblewimble_coin and mimblewimble_coin_floonet");
 			
 			// Return
 			return;
@@ -237,6 +195,9 @@ const DEFAULT_CURRENCY = "mimblewimble_coin";
 	// Get use Speculos from the command line arguments if provided
 	const useSpeculos = process["argv"]["length"] >= 4 && process["argv"][3] === "speculos";
 	
+	// Get target from the command line arguments if provided
+	const target = (useSpeculos === true && process["argv"]["length"] >= 5) ? process["argv"][4] : null;
+	
 	// Log message
 	console.log("Using currency: " + currency);
 
@@ -244,7 +205,7 @@ const DEFAULT_CURRENCY = "mimblewimble_coin";
 	await initializeDependencies();
 	
 	// Perform tests
-	await performTests(useSpeculos);
+	await performTests(useSpeculos, target);
 })();
 
 
@@ -267,7 +228,7 @@ async function initializeDependencies() {
 }
 
 // Perform tests
-async function performTests(useSpeculos) {
+async function performTests(useSpeculos, target) {
 	
 	// Try
 	try {
@@ -281,6 +242,13 @@ async function performTests(useSpeculos) {
 				// APDU port
 				"apduPort": SPECULOS_APDU_PORT
 			});
+			
+			// Check if target exists
+			if(target !== null) {
+			
+				// Set hardware wallet's device model
+				hardwareWallet["deviceModel"] = target;
+			}
 		}
 		
 		// Otherwise
@@ -315,32 +283,17 @@ async function performTests(useSpeculos) {
 		// Run get root public key test
 		await getRootPublicKeyTest(hardwareWallet, extendedPrivateKey);
 		
-		// Check if using MimbleWimble Coin
-		if(Consensus.getWalletType() === Consensus.MWC_WALLET_TYPE) {
-		
-			// Run get address test
-			await getAddressTest(hardwareWallet, extendedPrivateKey, MQS_ADDRESS_TYPE);
-			await getAddressTest(hardwareWallet, extendedPrivateKey, TOR_ADDRESS_TYPE);
-		}
-		
-		// Otherwise check if using Grin
-		else if(Consensus.getWalletType() === Consensus.GRIN_WALLET_TYPE) {
-		
-			// Run get address test
-			await getAddressTest(hardwareWallet, extendedPrivateKey, SLATEPACK_ADDRESS_TYPE);
-		}
+		// Run get address test
+		await getAddressTest(hardwareWallet, extendedPrivateKey, MQS_ADDRESS_TYPE);
+		await getAddressTest(hardwareWallet, extendedPrivateKey, TOR_ADDRESS_TYPE);
 		
 		// Run get seed cookie test
 		await getSeedCookieTest(hardwareWallet, extendedPrivateKey);
 		
 		// Run get commitment test
-		await getCommitmentTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE);
 		await getCommitmentTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR);
 		
 		// Run get bulletproof test
-		await getBulletproofTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SENDING_TRANSACTION_MESSAGE_TYPE);
-		await getBulletproofTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, RECEIVING_TRANSACTION_MESSAGE_TYPE);
-		await getBulletproofTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, CREATING_COINBASE_MESSAGE_TYPE);
 		await getBulletproofTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SENDING_TRANSACTION_MESSAGE_TYPE);
 		await getBulletproofTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, RECEIVING_TRANSACTION_MESSAGE_TYPE);
 		await getBulletproofTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, CREATING_COINBASE_MESSAGE_TYPE);
@@ -348,207 +301,68 @@ async function performTests(useSpeculos) {
 		// Run verify root public key test
 		await verifyRootPublicKeyTest(hardwareWallet, extendedPrivateKey);
 		
-		// Check if using MimbleWimble Coin
-		if(Consensus.getWalletType() === Consensus.MWC_WALLET_TYPE) {
+		// Run verify address test
+		await verifyAddressTest(hardwareWallet, extendedPrivateKey, MQS_ADDRESS_TYPE);
+		await verifyAddressTest(hardwareWallet, extendedPrivateKey, TOR_ADDRESS_TYPE);
 		
-			// Run verify address test
-			await verifyAddressTest(hardwareWallet, extendedPrivateKey, MQS_ADDRESS_TYPE);
-			await verifyAddressTest(hardwareWallet, extendedPrivateKey, TOR_ADDRESS_TYPE);
-		}
+		// Run encrypt slate test
+		await encryptSlateTest(hardwareWallet, extendedPrivateKey, MQS_ADDRESS_TYPE);
+		await encryptSlateTest(hardwareWallet, extendedPrivateKey, TOR_ADDRESS_TYPE);
 		
-		// Otherwise check if using Grin
-		else if(Consensus.getWalletType() === Consensus.GRIN_WALLET_TYPE) {
+		// Run decrypt slate test
+		await decryptSlateTest(hardwareWallet, extendedPrivateKey, MQS_ADDRESS_TYPE);
+		await decryptSlateTest(hardwareWallet, extendedPrivateKey, TOR_ADDRESS_TYPE);
 		
-			// Run verify address test
-			await verifyAddressTest(hardwareWallet, extendedPrivateKey, SLATEPACK_ADDRESS_TYPE);
-		}
+		// Run receive transaction test
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
+		await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
 		
-		// Check if using MimbleWimble Coin
-		if(Consensus.getWalletType() === Consensus.MWC_WALLET_TYPE) {
+		// Run send transaction test
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
+		await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
 		
-			// Run encrypt slate test
-			await encryptSlateTest(hardwareWallet, extendedPrivateKey, MQS_ADDRESS_TYPE);
-			await encryptSlateTest(hardwareWallet, extendedPrivateKey, TOR_ADDRESS_TYPE);
-		}
+		// Run get MQS timestamp signature test
+		await getMqsTimestampSignatureTest(hardwareWallet, extendedPrivateKey);
 		
-		// Otherwise check if using Grin
-		else if(Consensus.getWalletType() === Consensus.GRIN_WALLET_TYPE) {
+		// Run get MQS default challenge signature test
+		await getMqsDefaultChallengeSignatureTest(hardwareWallet, extendedPrivateKey);
 		
-			// Run encrypt slate test
-			await encryptSlateTest(hardwareWallet, extendedPrivateKey, SLATEPACK_ADDRESS_TYPE);
-		}
-		
-		// Check if using MimbleWimble Coin
-		if(Consensus.getWalletType() === Consensus.MWC_WALLET_TYPE) {
-		
-			// Run decrypt slate test
-			await decryptSlateTest(hardwareWallet, extendedPrivateKey, MQS_ADDRESS_TYPE);
-			await decryptSlateTest(hardwareWallet, extendedPrivateKey, TOR_ADDRESS_TYPE);
-		}
-		
-		// Otherwise check if using Grin
-		else if(Consensus.getWalletType() === Consensus.GRIN_WALLET_TYPE) {
-		
-			// Run decrypt slate test
-			await decryptSlateTest(hardwareWallet, extendedPrivateKey, SLATEPACK_ADDRESS_TYPE);
-		}
-		
-		// Check if using MimbleWimble Coin
-		if(Consensus.getWalletType() === Consensus.MWC_WALLET_TYPE) {
-		
-			// Run receive transaction test
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-		}
-		
-		// Otherwise check if using Grin
-		else if(Consensus.getWalletType() === Consensus.GRIN_WALLET_TYPE) {
-		
-			// Run receive transaction test
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.COINBASE_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-			await receiveTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-		}
-		
-		// Check if using MimbleWimble Coin
-		if(Consensus.getWalletType() === Consensus.MWC_WALLET_TYPE) {
-		
-			// Run send transaction test
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), MQS_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, MQS_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), TOR_ADDRESS_TYPE, TOR_PAYMENT_PROOF_TYPE);
-		}
-		
-		// Otherwise check if using Grin
-		else if(Consensus.getWalletType() === Consensus.GRIN_WALLET_TYPE) {
-		
-			// Run send transaction test
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.PLAIN_FEATURES, Slate.NO_LOCK_HEIGHT, SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.HEIGHT_LOCKED_FEATURES, new BigNumber(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)), SlateKernel.NO_RELATIVE_HEIGHT, SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), SLATEPACK_ADDRESS_TYPE, NO_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_NONE, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-			await sendTransactionTest(hardwareWallet, extendedPrivateKey, Crypto.SWITCH_TYPE_REGULAR, SlateKernel.NO_RECENT_DUPLICATE_FEATURES, Slate.NO_LOCK_HEIGHT, new BigNumber(Math.floor(Math.random() * (SlateKernel.MAXIMUM_RECENT_HEIGHT - SlateKernel.MINIMUM_RECENT_HEIGHT + 1)) + SlateKernel.MINIMUM_RECENT_HEIGHT), SLATEPACK_ADDRESS_TYPE, SLATEPACK_PAYMENT_PROOF_TYPE);
-		}
-		
-		// Check if using MimbleWimble Coin
-		if(Consensus.getWalletType() === Consensus.MWC_WALLET_TYPE) {
-		
-			// Run get MQS timestamp signature test
-			await getMqsTimestampSignatureTest(hardwareWallet, extendedPrivateKey);
-		}
-		
-		// Check if using MimbleWimble Coin
-		if(Consensus.getWalletType() === Consensus.MWC_WALLET_TYPE) {
-		
-			// Run get Tor certificate signature test
-			await getTorCertificateSignatureTest(hardwareWallet, extendedPrivateKey, TOR_ADDRESS_TYPE);
-		}
-		
-		// Otherwise check if using Grin
-		else if(Consensus.getWalletType() === Consensus.GRIN_WALLET_TYPE) {
-		
-			// Run get Tor certificate signature test
-			await getTorCertificateSignatureTest(hardwareWallet, extendedPrivateKey, SLATEPACK_ADDRESS_TYPE);
-		}
+		// Run get login signature test
+		await getLoginSignatureTest(hardwareWallet, extendedPrivateKey);
 		
 		// Log message
 		console.log("Passed running all functional tests");
@@ -584,7 +398,7 @@ function setAutomation(automation) {
 		const request = http.request({
 		
 			// Hostname
-			"hostname": "localhost",
+			"hostname": "127.0.0.1",
 			
 			// Port
 			"port": SPECULOS_AUTOMATION_PORT,
@@ -650,7 +464,7 @@ async function getApplicationInformationTest(hardwareWallet) {
 	const applicationNameLength = response[1];
 	
 	// Get application name from the response
-	const applicationName = (new TextDecoder()).decode(response.subarray(2, 2 + applicationNameLength));
+	const applicationName = (new TextDecoder("utf-8", {"fatal": true})).decode(response.subarray(2, 2 + applicationNameLength));
 	
 	// Log application name
 	console.log("Application name: " + applicationName);
@@ -659,7 +473,7 @@ async function getApplicationInformationTest(hardwareWallet) {
 	const applicationVersionLength = response[2 + applicationNameLength];
 	
 	// Get application version from the response
-	const applicationVersion = (new TextDecoder()).decode(response.subarray(2 + applicationNameLength + 1, 2 + applicationNameLength + 1 + applicationVersionLength));
+	const applicationVersion = (new TextDecoder("utf-8", {"fatal": true})).decode(response.subarray(2 + applicationNameLength + 1, 2 + applicationNameLength + 1 + applicationVersionLength));
 							
 	// Log application version
 	console.log("Application version: " + applicationVersion);
@@ -681,38 +495,150 @@ async function getRootPublicKeyTest(hardwareWallet, extendedPrivateKey) {
 	if(hardwareWallet instanceof SpeculosTransport === false) {
 	
 		// Log message
-		console.log("Confirm exporting the root public key on the device");
+		console.log("Verify that the account index on the device is: " + ACCOUNT.toFixed());
 	}
 	
 	// Otherwise
 	else {
 	
-		// Set automation
-		await setAutomation({
-			"version": 1,
-			"rules": [
-				{
-					"text": "Export root",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"text": "Approve",
-					"actions": [
-					
-						// Push both
-						["button", 1, true],
-						["button", 2, true],
-						["button", 1, false],
-						["button", 2, false]
-					]
-				}
-			]
-		});
+		// Check if using a Nano hardware wallet
+		if(hardwareWallet["deviceModel"].toLowerCase().startsWith("nano") === true) {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "Export root",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Account.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "The host will",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "the account's",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "Approve",
+						"actions": [
+						
+							// Push both
+							["button", 1, true],
+							["button", 2, true],
+							["button", 1, false],
+							["button", 2, false]
+						]
+					}
+				]
+			});
+		}
+		
+		// Otherwise
+		else {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "Tap to continue",
+						"actions": [
+						
+							// Clear confirmed
+							["setbool", "confirmed", false],
+							
+							// Touch
+							["finger", 200, 500, false],
+							["finger", 200, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Swipe to review",
+						"actions": [
+						
+							// Clear confirmed
+							["setbool", "confirmed", false],
+							
+							// Touch
+							["finger", 100, 500, false],
+							["finger", 100, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Hold to export",
+						"conditions": [
+						
+							// Not confirmed
+							["confirmed", false]
+						],
+						"actions": [
+						
+							// Set confirmed
+							["setbool", "confirmed", true],
+							
+							// Touch start
+							["finger", 250, 500, true]
+						]
+					},
+					{
+						"text": "Reject",
+						"conditions": [
+						
+							// Not confirmed
+							["confirmed", false]
+						],
+						"actions": [
+						
+							// Touch
+							["finger", 399, 586, false],
+							["finger", 399, 586, true],
+							["finger", 399, 586, false]
+						]
+					},
+					{
+						"text": "ROOT PUBLIC",
+						"conditions": [
+						
+							// Is confirmed
+							["confirmed", true]
+						],
+						"actions": [
+						
+							// Touch end
+							["finger", 200, 500, false]
+						]
+					}
+				]
+			});
+		}
 	}
 	
 	// Get the root public key from the hardware wallet
@@ -782,24 +708,6 @@ async function getAddressTest(hardwareWallet, extendedPrivateKey, addressType) {
 			
 			// Break
 			break;
-		
-		// Slatepack address type
-		case SLATEPACK_ADDRESS_TYPE:
-		
-			// Log message
-			console.log("Using address type: Slatepack");
-			
-			// Get Slatepack private key from the extended private key
-			const slatepackPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
-			
-			// Get Slatepack public key from the Slatepack private key
-			const slatepackPublicKey = Ed25519.publicKeyFromSecretKey(slatepackPrivateKey);
-			
-			// Get expected address from the Slatepack public key
-			var expectedAddress = Slatepack.publicKeyToSlatepackAddress(slatepackPublicKey);
-			
-			// Break
-			break;
 	}
 	
 	// Get the address from the hardware wallet
@@ -813,7 +721,7 @@ async function getAddressTest(hardwareWallet, extendedPrivateKey, addressType) {
 	]));
 	
 	// Remove response code from response
-	response = (new TextDecoder()).decode(response.subarray(0, response["length"] - RESPONSE_DELIMITER_LENGTH));
+	response = (new TextDecoder("utf-8", {"fatal": true})).decode(response.subarray(0, response["length"] - RESPONSE_DELIMITER_LENGTH));
 	
 	// Log address
 	console.log("Address: " + response);
@@ -1066,41 +974,86 @@ async function verifyRootPublicKeyTest(hardwareWallet, extendedPrivateKey) {
 	// Otherwise
 	else {
 	
-		// Set automation
-		await setAutomation({
-			"version": 1,
-			"rules": [
-				{
-					"text": "Verify root",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"regexp": "^Root Public Key.*$",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"text": "Valid",
-					"actions": [
-					
-						// Push both
-						["button", 1, true],
-						["button", 2, true],
-						["button", 1, false],
-						["button", 2, false]
-					]
-				}
-			]
-		});
+		// Check if using a Nano hardware wallet
+		if(hardwareWallet["deviceModel"].toLowerCase().startsWith("nano") === true) {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "Verify root",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Root Public Key.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "Valid",
+						"actions": [
+						
+							// Push both
+							["button", 1, true],
+							["button", 2, true],
+							["button", 1, false],
+							["button", 2, false]
+						]
+					}
+				]
+			});
+		}
+		
+		// Otherwise
+		else {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "Tap to continue",
+						"actions": [
+						
+							// Touch
+							["finger", 200, 500, false],
+							["finger", 200, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Swipe to review",
+						"actions": [
+						
+							// Touch
+							["finger", 100, 500, false],
+							["finger", 100, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Cancel",
+						"actions": [
+						
+							// Touch
+							["finger", 200, (hardwareWallet["deviceModel"].toLowerCase() === "flex") ? 450 : 500, false],
+							["finger", 200, (hardwareWallet["deviceModel"].toLowerCase() === "flex") ? 450 : 500, true],
+							["finger", 200, (hardwareWallet["deviceModel"].toLowerCase() === "flex") ? 450 : 500, false]
+						]
+					}
+				]
+			});
+		}
 	}
 	
 	// Verify root public key on the hardware wallet
@@ -1113,140 +1066,171 @@ async function verifyRootPublicKeyTest(hardwareWallet, extendedPrivateKey) {
 // Verify address test
 async function verifyAddressTest(hardwareWallet, extendedPrivateKey, addressType) {
 
-	// Log message
-	console.log("Running verify address test");
+	// Check if not using Speculos or using a Nano hardware wallet
+	if(hardwareWallet instanceof SpeculosTransport === false || hardwareWallet["deviceModel"].toLowerCase().startsWith("nano") === true) {
 	
-	// Check address type
-	switch(addressType) {
-	
-		// MQS address type
-		case MQS_ADDRESS_TYPE:
+		// Log message
+		console.log("Running verify address test");
 		
-			// Log message
-			console.log("Using address type: MQS");
-			
-			// Get MQS private key from the extended private key
-			const mqsPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
-			
-			// Get MQS public key from the MQS private key
-			const mqsPublicKey = Secp256k1Zkp.publicKeyFromSecretKey(mqsPrivateKey);
-			
-			// Get address from the MQS public key
-			var address = Mqs.publicKeyToMqsAddress(mqsPublicKey, Consensus.getNetworkType() === Consensus.MAINNET_NETWORK_TYPE);
-			
-			// Check if not using Speculos
-			if(hardwareWallet instanceof SpeculosTransport === false) {
+		// Check address type
+		switch(addressType) {
+		
+			// MQS address type
+			case MQS_ADDRESS_TYPE:
 			
 				// Log message
-				console.log("Verify that the MQS address on the device is: " + address);
-			}
-			
-			// Break
-			break;
-		
-		// Tor address type
-		case TOR_ADDRESS_TYPE:
-		
-			// Log message
-			console.log("Using address type: Tor");
-			
-			// Get Tor private key from the extended private key
-			const torPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
-			
-			// Get Tor public key from the Tor private key
-			const torPublicKey = Ed25519.publicKeyFromSecretKey(torPrivateKey);
-			
-			// Get address from the Tor public key
-			var address = Tor.publicKeyToTorAddress(torPublicKey);
-			
-			// Check if not using Speculos
-			if(hardwareWallet instanceof SpeculosTransport === false) {
-			
-				// Log message
-				console.log("Verify that the Tor address on the device is: " + address);
-			}
-			
-			// Break
-			break;
-		
-		// Slatepack address type
-		case SLATEPACK_ADDRESS_TYPE:
-		
-			// Log message
-			console.log("Using address type: Slatepack");
-			
-			// Get Slatepack private key from the extended private key
-			const slatepackPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
-			
-			// Get Slatepack public key from the Slatepack private key
-			const slatepackPublicKey = Ed25519.publicKeyFromSecretKey(slatepackPrivateKey);
-			
-			// Get address from the Slatepack public key
-			var address = Slatepack.publicKeyToSlatepackAddress(slatepackPublicKey);
-			
-			// Check if not using Speculos
-			if(hardwareWallet instanceof SpeculosTransport === false) {
-			
-				// Log message
-				console.log("Verify that the Slatepack address on the device is: " + address);
-			}
-			
-			// Break
-			break;
-	}
-	
-	// Check if using Speculos
-	if(hardwareWallet instanceof SpeculosTransport === true) {
-	
-		// Set automation
-		await setAutomation({
-			"version": 1,
-			"rules": [
-				{
-					"text": "address",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"regexp": "^.+ress.*$",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"text": "Valid",
-					"actions": [
-					
-						// Push both
-						["button", 1, true],
-						["button", 2, true],
-						["button", 1, false],
-						["button", 2, false]
-					]
+				console.log("Using address type: MQS");
+				
+				// Get MQS private key from the extended private key
+				const mqsPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
+				
+				// Get MQS public key from the MQS private key
+				const mqsPublicKey = Secp256k1Zkp.publicKeyFromSecretKey(mqsPrivateKey);
+				
+				// Get address from the MQS public key
+				var address = Mqs.publicKeyToMqsAddress(mqsPublicKey, Consensus.getNetworkType() === Consensus.MAINNET_NETWORK_TYPE);
+				
+				// Check if not using Speculos
+				if(hardwareWallet instanceof SpeculosTransport === false) {
+				
+					// Log message
+					console.log("Verify that the MQS address on the device is: " + address);
 				}
-			]
-		});
+				
+				// Break
+				break;
+			
+			// Tor address type
+			case TOR_ADDRESS_TYPE:
+			
+				// Log message
+				console.log("Using address type: Tor");
+				
+				// Get Tor private key from the extended private key
+				const torPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
+				
+				// Get Tor public key from the Tor private key
+				const torPublicKey = Ed25519.publicKeyFromSecretKey(torPrivateKey);
+				
+				// Get address from the Tor public key
+				var address = Tor.publicKeyToTorAddress(torPublicKey);
+				
+				// Check if not using Speculos
+				if(hardwareWallet instanceof SpeculosTransport === false) {
+				
+					// Log message
+					console.log("Verify that the Tor address on the device is: " + address);
+				}
+				
+				// Break
+				break;
+		}
+		
+		// Check if using Speculos
+		if(hardwareWallet instanceof SpeculosTransport === true) {
+		
+			// Check if using a Nano hardware wallet
+			if(hardwareWallet["deviceModel"].toLowerCase().startsWith("nano") === true) {
+			
+				// Set automation
+				await setAutomation({
+					"version": 1,
+					"rules": [
+						{
+							"text": "address",
+							"actions": [
+							
+								// Push right
+								["button", 2, true],
+								["button", 2, false]
+							]
+						},
+						{
+							"regexp": "^.+ress.*$",
+							"actions": [
+							
+								// Push right
+								["button", 2, true],
+								["button", 2, false]
+							]
+						},
+						{
+							"text": "Valid",
+							"actions": [
+							
+								// Push both
+								["button", 1, true],
+								["button", 2, true],
+								["button", 1, false],
+								["button", 2, false]
+							]
+						}
+					]
+				});
+			}
+			
+			// Otherwise
+			else {
+			
+				// Set automation
+				await setAutomation({
+					"version": 1,
+					"rules": [
+						{
+							"text": "Tap to continue",
+							"actions": [
+							
+								// Touch
+								["finger", 200, 500, false],
+								["finger", 200, 500, true],
+								["finger", 200, 500, false]
+							]
+						},
+						{
+							"text": "Swipe to review",
+							"actions": [
+							
+								// Touch
+								["finger", 100, 500, false],
+								["finger", 100, 500, true],
+								["finger", 200, 500, false]
+							]
+						},
+						{
+							"text": "Cancel",
+							"actions": [
+							
+								// Touch
+								["finger", 200, (hardwareWallet["deviceModel"].toLowerCase() === "flex") ? 450 : 500, false],
+								["finger", 200, (hardwareWallet["deviceModel"].toLowerCase() === "flex") ? 450 : 500, true],
+								["finger", 200, (hardwareWallet["deviceModel"].toLowerCase() === "flex") ? 450 : 500, false]
+							]
+						}
+					]
+				});
+			}
+		}
+		
+		// Verify address on the hardware wallet
+		await hardwareWallet.send(REQUEST_CLASS, REQUEST_VERIFY_ADDRESS_INSTRUCTION, addressType, NO_PARAMETER, Buffer.concat([
+		
+			// Account
+			Buffer.from(ACCOUNT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32)),
+			
+			// Index
+			Buffer.from(INDEX.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32))
+		]));
+		
+		// Log message
+		console.log("Passed verifying address test");
 	}
 	
-	// Verify address on the hardware wallet
-	await hardwareWallet.send(REQUEST_CLASS, REQUEST_VERIFY_ADDRESS_INSTRUCTION, addressType, NO_PARAMETER, Buffer.concat([
+	// Otherwise
+	else {
 	
-		// Account
-		Buffer.from(ACCOUNT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32)),
-		
-		// Index
-		Buffer.from(INDEX.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32))
-	]));
-	
-	// Log message
-	console.log("Passed verifying address test");
+		// Log message
+		console.log("Skipped running verify address test");
+	}
 }
 
 // Encrypt slate test
@@ -1259,10 +1243,16 @@ async function encryptSlateTest(hardwareWallet, extendedPrivateKey, addressType)
 		console.log("Running encrypt slate test");
 		
 		// Data
-		const DATA = crypto.getRandomValues(new Uint8Array(Math.round(Math.random() * Common.BYTE_MAX_VALUE)));
+		const DATA = crypto.getRandomValues(new Uint8Array(Math.round(Math.random() * Common.BYTE_MAX_VALUE + 1)));
 		
 		// Maximum chunk size
 		const MAXIMUM_CHUNK_SIZE = 64;
+		
+		// Domain
+		const DOMAIN = "example.com";
+		
+		// Port
+		const PORT = 80;
 		
 		// Log data
 		console.log("Using data: " + Common.toHexString(DATA));
@@ -1274,7 +1264,7 @@ async function encryptSlateTest(hardwareWallet, extendedPrivateKey, addressType)
 			// Fill offset with random values
 			crypto.getRandomValues(privateKey);
 			
-		} while(Secp256k1Zkp.isValidSecretKey(privateKey) === false);
+		} while(Secp256k1Zkp.isValidSecretKey(privateKey) !== true);
 		
 		// Log private key
 		console.log("Using private key: " + Common.toHexString(privateKey));
@@ -1293,7 +1283,7 @@ async function encryptSlateTest(hardwareWallet, extendedPrivateKey, addressType)
 					const publicKey = Secp256k1Zkp.publicKeyFromSecretKey(privateKey);
 					
 					// Get address from the MQS public key
-					var address = Mqs.publicKeyToMqsAddress(publicKey, Consensus.getNetworkType() === Consensus.MAINNET_NETWORK_TYPE);
+					var address = Mqs.publicKeyToMqsAddress(publicKey, Consensus.getNetworkType() === Consensus.MAINNET_NETWORK_TYPE) + "@" + DOMAIN + ":" + PORT.toFixed();
 				}
 				
 				// Break
@@ -1314,26 +1304,6 @@ async function encryptSlateTest(hardwareWallet, extendedPrivateKey, addressType)
 					
 					// Get address from the public key
 					var address = Tor.publicKeyToTorAddress(publicKey);
-				}
-				
-				// Break
-				break;
-			
-			// Slatepack address type
-			case SLATEPACK_ADDRESS_TYPE:
-			
-				// Log message
-				console.log("Using encryption type: Slatepack");
-				
-				{
-					// Get Slatepack private key from the random private key
-					var otherSlatepackPrivateKey = await Crypto.addressKey(Common.mergeArrays([privateKey, crypto.getRandomValues(new Uint8Array(Crypto.CHAIN_CODE_LENGTH))]), INDEX.toNumber());
-					
-					// Get Slatepack public key from the Slatepack private key
-					const publicKey = Ed25519.publicKeyFromSecretKey(otherSlatepackPrivateKey);
-					
-					// Get address from the public key
-					var address = Slatepack.publicKeyToSlatepackAddress(publicKey);
 				}
 				
 				// Break
@@ -1362,12 +1332,28 @@ async function encryptSlateTest(hardwareWallet, extendedPrivateKey, addressType)
 		// Get salt from response
 		const salt = response.subarray(Slatepack.NONCE_LENGTH, response["length"] - RESPONSE_DELIMITER_LENGTH);
 		
-		// Log salt
-		console.log("Using salt: " + Common.toHexString(salt));
+		// Check address type
+		switch(addressType) {
+		
+			// MQS address type
+			case MQS_ADDRESS_TYPE:
+		
+				// Log salt
+				console.log("Using salt: " + Common.toHexString(salt));
+				
+				// Log domain
+				console.log("Using domain: " + DOMAIN);
+				
+				// Log port
+				console.log("Using port: " + PORT.toFixed());
+				
+				// Break
+				break;
+		}
 		
 		// Go through all chunks of the data
 		let encryptedData = new Uint8Array([]);
-		for(let i = 0; i <= DATA["length"] / MAXIMUM_CHUNK_SIZE; ++i) {
+		for(let i = 0; i < Math.ceil(DATA["length"] / MAXIMUM_CHUNK_SIZE); ++i) {
 		
 			// Continue encrypting slate on the hardware wallet
 			response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_ENCRYPTING_SLATE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.from(DATA.subarray(i * MAXIMUM_CHUNK_SIZE, i * MAXIMUM_CHUNK_SIZE + MAXIMUM_CHUNK_SIZE)));
@@ -1385,8 +1371,59 @@ async function encryptSlateTest(hardwareWallet, extendedPrivateKey, addressType)
 		// Remove response code from response
 		response = response.subarray(0, response["length"] - RESPONSE_DELIMITER_LENGTH);
 		
-		// Append tag to encrypted data
-		encryptedData = Common.mergeArrays([encryptedData, response]);
+		// Check if using MQS encryption type
+		if(addressType === MQS_ADDRESS_TYPE) {
+		
+			// Get tag from response
+			const tag = response.subarray(0, Mqs.TAG_LENGTH);
+		
+			// Get message signature from response
+			const messageSignature = response.subarray(Mqs.TAG_LENGTH);
+			
+			// Append tag to encrypted data
+			encryptedData = Common.mergeArrays([encryptedData, tag]);
+			
+			// Create message
+			const message = JSON.stringify({
+				"destination": {
+					"public_key": address.split("@")[0],
+					"domain": DOMAIN,
+					"port": PORT
+				},
+				"nonce": Common.toHexString(nonce),
+				"salt": Common.toHexString(salt),
+				"encrypted_message": Common.toHexString(encryptedData)	
+			});
+			
+			// Get message hash
+			const messageHash = new Uint8Array(sha256.arrayBuffer(message));
+			
+			// Get MQS private key from the extended private key
+			const mqsPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
+			
+			// Set expected message signature as the message hash signed by the MQS private key
+			const expectedMessageSignature = Secp256k1Zkp.createMessageHashSignature(messageHash, mqsPrivateKey);
+			
+			// Log message signature
+			console.log("Message signature: " + Common.toHexString(messageSignature));
+		
+			// Check if message signature is invalid
+			if(Common.arraysAreEqual(messageSignature, expectedMessageSignature) === false) {
+			
+				// Log message
+				console.log("Invalid message signature");
+				
+				// Throw error
+				throw "Failed running encrypt slate test";
+			}
+		}
+		
+		// Otherwise
+		else {
+		
+			// Append tag to encrypted data
+			encryptedData = Common.mergeArrays([encryptedData, response]);
+		}
 		
 		// Log encrypted slate
 		console.log("Encrypted slate: " + Common.toHexString(encryptedData));
@@ -1420,21 +1457,6 @@ async function encryptSlateTest(hardwareWallet, extendedPrivateKey, addressType)
 				
 				// Decrypt the encrypted data
 				var decryptedData = await Slatepack.decrypt(otherTorPrivateKey, torPublicKey, encryptedData, nonce);
-				
-				// Break
-				break;
-			
-			// Slatepack address type
-			case SLATEPACK_ADDRESS_TYPE:
-		
-				// Get Slatepack private key from the extended private key
-				const slatepackPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
-				
-				// Get Slatepack public key from the Slatepack private key
-				const slatepackPublicKey = Ed25519.publicKeyFromSecretKey(slatepackPrivateKey);
-				
-				// Decrypt the encrypted data
-				var decryptedData = await Slatepack.decrypt(otherSlatepackPrivateKey, slatepackPublicKey, encryptedData, nonce);
 				
 				// Break
 				break;
@@ -1475,7 +1497,7 @@ async function decryptSlateTest(hardwareWallet, extendedPrivateKey, addressType)
 		console.log("Running decrypt slate test");
 		
 		// Data
-		const DATA = crypto.getRandomValues(new Uint8Array(Math.round(Math.random() * Common.BYTE_MAX_VALUE)));
+		const DATA = crypto.getRandomValues(new Uint8Array(Math.round(Math.random() * Common.BYTE_MAX_VALUE + 1)));
 		
 		// Maximum chunk size
 		const MAXIMUM_CHUNK_SIZE = 64;
@@ -1493,7 +1515,7 @@ async function decryptSlateTest(hardwareWallet, extendedPrivateKey, addressType)
 			// Fill offset with random values
 			crypto.getRandomValues(privateKey);
 			
-		} while(Secp256k1Zkp.isValidSecretKey(privateKey) === false);
+		} while(Secp256k1Zkp.isValidSecretKey(privateKey) !== true);
 		
 		// Log private key
 		console.log("Using private key: " + Common.toHexString(privateKey));
@@ -1581,46 +1603,6 @@ async function decryptSlateTest(hardwareWallet, extendedPrivateKey, addressType)
 				
 				// Break
 				break;
-			
-			// Slatepack address type
-			case SLATEPACK_ADDRESS_TYPE:
-			
-				// Log message
-				console.log("Using decryption type: Slatepack");
-			
-				{
-					// Get Slatepack private key from the random private key
-					const otherSlatepackPrivateKey = await Crypto.addressKey(Common.mergeArrays([privateKey, crypto.getRandomValues(new Uint8Array(Crypto.CHAIN_CODE_LENGTH))]), INDEX.toNumber());
-					
-					const publicKey = Ed25519.publicKeyFromSecretKey(otherSlatepackPrivateKey);
-					
-					// Get address from the public key
-					var address = Slatepack.publicKeyToSlatepackAddress(publicKey);
-					
-					// Get Slatepack private key from the extended private key
-					const slatepackPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
-					
-					// Get Slatepack public key from the Slatepack private key
-					const slatepackPublicKey = Ed25519.publicKeyFromSecretKey(slatepackPrivateKey);
-					
-					// Encrypt the data
-					const encryptedData = await Slatepack.encrypt(otherSlatepackPrivateKey, slatepackPublicKey, DATA);
-					
-					// Set salt to nothing
-					var salt = new Uint8Array([]);
-					
-					// Get nonce from encrypted data
-					var nonce = encryptedData[Slatepack.ENCRYPTED_DATA_NONCE_INDEX];
-					
-					// Log nonce
-					console.log("Using nonce: " + Common.toHexString(nonce));
-					
-					// Get encrypted message from encrypted data
-					var encryptedMessage = encryptedData[Slatepack.ENCRYPTED_DATA_DATA_INDEX];
-				}
-				
-				// Break
-				break;
 		}
 		
 		// Log encrypted slate
@@ -1651,7 +1633,7 @@ async function decryptSlateTest(hardwareWallet, extendedPrivateKey, addressType)
 		
 		// Go through all chunks of the encrypted message
 		const decryptedDataChunks = [];
-		for(let i = 0; i <= encryptedMessage["length"] / MAXIMUM_CHUNK_SIZE; ++i) {
+		for(let i = 0; i < Math.ceil(encryptedMessage["length"] / MAXIMUM_CHUNK_SIZE); ++i) {
 		
 			// Continue decrypting slate on the hardware wallet
 			response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_DECRYPTING_SLATE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.from(encryptedMessage.subarray(i * MAXIMUM_CHUNK_SIZE, i * MAXIMUM_CHUNK_SIZE + MAXIMUM_CHUNK_SIZE)));
@@ -1828,7 +1810,7 @@ async function receiveTransactionTest(hardwareWallet, extendedPrivateKey, switch
 			console.log("Using sender address type: MQS");
 			
 			// Get MQS private key from the extended private key
-			const mqsPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
+			const mqsPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.plus(1).toNumber());
 			
 			// Get MQS public key from the MQS private key
 			const mqsPublicKey = Secp256k1Zkp.publicKeyFromSecretKey(mqsPrivateKey);
@@ -1846,31 +1828,13 @@ async function receiveTransactionTest(hardwareWallet, extendedPrivateKey, switch
 			console.log("Using sender address type: Tor");
 			
 			// Get Tor private key from the extended private key
-			const torPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
+			const torPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.plus(1).toNumber());
 			
 			// Get Tor public key from the Tor private key
 			const torPublicKey = Ed25519.publicKeyFromSecretKey(torPrivateKey);
 			
 			// Get sender address from the Tor public key
 			var senderAddress = Tor.publicKeyToTorAddress(torPublicKey);
-		
-			// Break
-			break;
-		
-		// Slatepack address type
-		case SLATEPACK_ADDRESS_TYPE:
-		
-			// Log sender address type
-			console.log("Using sender address type: Slatepack");
-			
-			// Get Slatepack private key from the extended private key
-			const slatepackPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.plus(1).toNumber());
-			
-			// Get Slatepack public key from the Slatepack private key
-			const slatepackPublicKey = Ed25519.publicKeyFromSecretKey(slatepackPrivateKey);
-			
-			// Get sender address from the Slatepack public key
-			var senderAddress = Slatepack.publicKeyToSlatepackAddress(slatepackPublicKey);
 		
 			// Break
 			break;
@@ -1938,27 +1902,6 @@ async function receiveTransactionTest(hardwareWallet, extendedPrivateKey, switch
 		
 			// Break
 			break;
-		
-		// Slatepack payment proof type
-		case SLATEPACK_PAYMENT_PROOF_TYPE:
-		
-			// Log payment proof type
-			console.log("Using payment proof type: Slatepack");
-			
-			// Set receiver address type
-			var receiverAddressType = SLATEPACK_ADDRESS_TYPE;
-		
-			// Get Slatepack private key from the extended private key
-			const slatepackPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
-			
-			// Set payment proof message
-			var paymentProofMessage = Slate.getPaymentProofMessage(OUTPUT, kernelCommit, senderAddress);
-			
-			// Set expected payment proof as the payment proof message signed by the Slatepack private key
-			var expectedPaymentProof = Ed25519.sign(paymentProofMessage, slatepackPrivateKey);
-		
-			// Break
-			break;
 	}
 	
 	// Get the output's blinding factor
@@ -1987,6 +1930,9 @@ async function receiveTransactionTest(hardwareWallet, extendedPrivateKey, switch
 		
 		// Fee
 		Buffer.from(FEE.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
+		
+		// Secret nonce index
+		Buffer.from(new Uint8Array([0])),
 		
 		// Address
 		Buffer.from((paymentProofType !== NO_PAYMENT_PROOF_TYPE) ? senderAddress : [])
@@ -2033,6 +1979,15 @@ async function receiveTransactionTest(hardwareWallet, extendedPrivateKey, switch
 	// Log transaction public nonce
 	console.log("Transaction public nonce: " + Common.toHexString(publicNonce));
 	
+	// Get the message signature from the hardware wallet
+	response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_TRANSACTION_GET_MESSAGE_SIGNATURE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.from((new TextEncoder()).encode(MESSAGE)));
+
+	// Remove response code from response
+	response = response.subarray(0, response["length"] - RESPONSE_DELIMITER_LENGTH);
+	
+	// Log message signature
+	console.log("Message signature: " + Common.toHexString(response));
+	
 	// Check if features is coinbase
 	if(features === SlateKernel.COINBASE_FEATURES) {
 		
@@ -2058,24 +2013,8 @@ async function receiveTransactionTest(hardwareWallet, extendedPrivateKey, switch
 		var publicKey = expectedTransactionPublicKey;
 	}
 	
-	// Get the message signature from the hardware wallet
-	response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_TRANSACTION_GET_MESSAGE_SIGNATURE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
-	
-		// Public key
-		Buffer.from(publicKey),
-		
-		// Message
-		Buffer.from((new TextEncoder()).encode(MESSAGE))
-	]));
-
-	// Remove response code from response
-	response = response.subarray(0, response["length"] - RESPONSE_DELIMITER_LENGTH);
-	
-	// Log message signature
-	console.log("Message signature: " + Common.toHexString(response));
-	
 	// Check if message signature is invalid
-	if(Secp256k1Zkp.verifySingleSignerSignature(response, Blake2b.compute(Crypto.SINGLE_SIGNER_MESSAGE_LENGTH, (new TextEncoder()).encode(MESSAGE), new Uint8Array([])), Secp256k1Zkp.NO_PUBLIC_NONCE, publicKey, publicKey, false) === false) {
+	if(Secp256k1Zkp.verifySingleSignerSignature(response, Blake2b.compute(Crypto.SINGLE_SIGNER_MESSAGE_LENGTH, (new TextEncoder()).encode(MESSAGE), new Uint8Array([])), Secp256k1Zkp.NO_PUBLIC_NONCE, publicKey, publicKey, false) !== true) {
 	
 		// Log message
 		console.log("Invalid message signature");
@@ -2084,15 +2023,40 @@ async function receiveTransactionTest(hardwareWallet, extendedPrivateKey, switch
 		throw "Failed running receive transaction test";
 	}
 	
+	// Log message
+	console.log("Verify that the account index on the device is: " + ACCOUNT.toFixed());
+	
 	// Check features
 	switch(features) {
 	
-		// Coinbase or plain features
-		case SlateKernel.COINBASE_FEATURES:
+		// Plain features
 		case SlateKernel.PLAIN_FEATURES:
 		
 			// Set kernel information to features
 			var kernelInformation = new Uint8Array([features]);
+		
+			// Check if not using Speculos
+			if(hardwareWallet instanceof SpeculosTransport === false) {
+			
+				// Log message
+				console.log("Verify that the transaction's kernel features on the device is: Plain");
+			}
+			
+			// Break
+			break;
+	
+		// Coinbase features
+		case SlateKernel.COINBASE_FEATURES:
+		
+			// Set kernel information to features
+			var kernelInformation = new Uint8Array([features]);
+			
+			// Check if not using Speculos
+			if(hardwareWallet instanceof SpeculosTransport === false) {
+			
+				// Log message
+				console.log("Verify that the transaction's kernel features on the device is: Coinbase");
+			}
 		
 			// Break
 			break;
@@ -2109,6 +2073,16 @@ async function receiveTransactionTest(hardwareWallet, extendedPrivateKey, switch
 				// Lock height
 				new Uint8Array(lockHeight.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64))
 			]);
+			
+			// Check if not using Speculos
+			if(hardwareWallet instanceof SpeculosTransport === false) {
+			
+				// Log message
+				console.log("Verify that the transaction's kernel features on the device is: Height Locked");
+				
+				// Log message
+				console.log("Verify that the transaction's lock height on the device is: " + lockHeight.toFixed());
+			}
 		
 			// Break
 			break;
@@ -2125,9 +2099,239 @@ async function receiveTransactionTest(hardwareWallet, extendedPrivateKey, switch
 				// Relative height
 				new Uint8Array(relativeHeight.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT16))
 			]);
+			
+			// Check if not using Speculos
+			if(hardwareWallet instanceof SpeculosTransport === false) {
+			
+				// Log message
+				console.log("Verify that the transaction's kernel features on the device is: No Recent Duplicate");
+				
+				// Log message
+				console.log("Verify that the transaction's relative height on the device is: " + relativeHeight.toFixed());
+			}
 		
 			// Break
 			break;
+	}
+	
+	// Check if not using Speculos
+	if(hardwareWallet instanceof SpeculosTransport === false) {
+	
+		// Log message
+		console.log("Verify that the transaction's amount on the device is: " + OUTPUT.dividedBy(Consensus.VALUE_NUMBER_BASE).toFixed() + ((Consensus.getNetworkType() !== Consensus.MAINNET_NETWORK_TYPE) ? " " + Consensus.networkTypeToText(Consensus.getNetworkType()) : "") + " " + Consensus.CURRENCY_NAME);
+		
+		// Log message
+		console.log("Verify that the transaction's fee on the device is: " + FEE.dividedBy(Consensus.VALUE_NUMBER_BASE).toFixed() + ((Consensus.getNetworkType() !== Consensus.MAINNET_NETWORK_TYPE) ? " " + Consensus.networkTypeToText(Consensus.getNetworkType()) : "") + " " + Consensus.CURRENCY_NAME);
+	}
+	
+	// Check if using a payment proof
+	if(paymentProofType !== NO_PAYMENT_PROOF_TYPE) {
+	
+		// Check if not using Speculos
+		if(hardwareWallet instanceof SpeculosTransport === false) {
+		
+			// Log message
+			console.log("Verify that the transaction's sender payment proof address on the device is: " + senderAddress);
+		}
+	}
+	
+	// Otherwise
+	else {
+	
+		// Check if not using Speculos
+		if(hardwareWallet instanceof SpeculosTransport === false) {
+	
+			// Log message
+			console.log("Verify that the transaction contains no payment proof on the device");
+		}
+	}
+	
+	// Check if using Speculos
+	if(hardwareWallet instanceof SpeculosTransport === true) {
+	
+		// Check if using a Nano hardware wallet
+		if(hardwareWallet["deviceModel"].toLowerCase().startsWith("nano") === true) {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "Receive",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Account.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Amount.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Fee.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Kernel Features.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Lock Height.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Relative Height.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "No payment",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Proof Address.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "Approve",
+						"actions": [
+						
+							// Push both
+							["button", 1, true],
+							["button", 2, true],
+							["button", 1, false],
+							["button", 2, false]
+						]
+					}
+				]
+			});
+		}
+	
+		// Otherwise
+		else {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "Tap to continue",
+						"actions": [
+						
+							// Clear confirmed
+							["setbool", "confirmed", false],
+							
+							// Touch
+							["finger", 200, 500, false],
+							["finger", 200, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Swipe to review",
+						"actions": [
+						
+							// Clear confirmed
+							["setbool", "confirmed", false],
+							
+							// Touch
+							["finger", 100, 500, false],
+							["finger", 100, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Hold to receive",
+						"conditions": [
+						
+							// Not confirmed
+							["confirmed", false]
+						],
+						"actions": [
+						
+							// Set confirmed
+							["setbool", "confirmed", true],
+							
+							// Touch start
+							["finger", 250, 500, true]
+						]
+					},
+					{
+						"text": "Reject",
+						"conditions": [
+						
+							// Not confirmed
+							["confirmed", false]
+						],
+						"actions": [
+						
+							// Touch
+							["finger", 399, 586, false],
+							["finger", 399, 586, true],
+							["finger", 399, 586, false]
+						]
+					},
+					{
+						"text": "TRANSACTION",
+						"conditions": [
+						
+							// Is confirmed
+							["confirmed", true]
+						],
+						"actions": [
+						
+							// Touch end
+							["finger", 200, 500, false]
+						]
+					}
+				]
+			});
+		}
 	}
 	
 	// Get signature for the transaction from the hardware wallet
@@ -2156,7 +2360,7 @@ async function receiveTransactionTest(hardwareWallet, extendedPrivateKey, switch
 	console.log("Transaction signature: " + Common.toHexString(signature));
 	
 	// Check if signature is invalid
-	if(Secp256k1Zkp.verifySingleSignerSignature(signature, SlateKernel.signatureMessage(features, FEE, lockHeight, relativeHeight), publicNonce, publicKey, publicKey, true) === false) {
+	if(Secp256k1Zkp.verifySingleSignerSignature(signature, SlateKernel.signatureMessage(features, FEE, lockHeight, relativeHeight), publicNonce, publicKey, publicKey, true) !== true) {
 	
 		// Log message
 		console.log("Invalid transaction signature");
@@ -2328,24 +2532,6 @@ async function sendTransactionTest(hardwareWallet, extendedPrivateKey, switchTyp
 		
 			// Break
 			break;
-		
-		// Slatepack address type
-		case SLATEPACK_ADDRESS_TYPE:
-		
-			// Log sender address type
-			console.log("Using sender address type: Slatepack");
-			
-			// Get Slatepack private key from the extended private key
-			const slatepackPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
-			
-			// Get Slatepack public key from the Slatepack private key
-			const slatepackPublicKey = Ed25519.publicKeyFromSecretKey(slatepackPrivateKey);
-			
-			// Get sender address from the Slatepack public key
-			var senderAddress = Slatepack.publicKeyToSlatepackAddress(slatepackPublicKey);
-		
-			// Break
-			break;
 	}
 	
 	// Get random kernel commitment
@@ -2410,76 +2596,7 @@ async function sendTransactionTest(hardwareWallet, extendedPrivateKey, switchTyp
 		
 			// Break
 			break;
-		
-		// Slatepack payment proof type
-		case SLATEPACK_PAYMENT_PROOF_TYPE:
-		
-			// Log payment proof type
-			console.log("Using payment proof type: Slatepack");
-		
-			// Get Slatepack private key from the extended private key
-			const slatepackPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
-			
-			// Get Slatepack public key from the Slatepack private key
-			const slatepackPublicKey = Ed25519.publicKeyFromSecretKey(slatepackPrivateKey);
-			
-			// Get receiver address from the Slatepack public key
-			var receiverAddress = Slatepack.publicKeyToSlatepackAddress(slatepackPublicKey);
-			
-			// Set payment proof as the payment proof message signed by the Slatepack private key
-			var paymentProof = Ed25519.sign(paymentProofMessage, slatepackPrivateKey);
-		
-			// Break
-			break;
 	}
-	
-	// Start transaction on the hardware wallet
-	await hardwareWallet.send(REQUEST_CLASS, REQUEST_START_TRANSACTION_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
-	
-		// Account
-		Buffer.from(ACCOUNT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32)),
-		
-		// Index
-		Buffer.from(INDEX.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32)),
-		
-		// Output
-		Buffer.from(OUTPUT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
-		
-		// Input
-		Buffer.from(INPUT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
-		
-		// Fee
-		Buffer.from(FEE.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
-		
-		// Address
-		Buffer.from((paymentProofType !== NO_PAYMENT_PROOF_TYPE) ? receiverAddress : [])
-	]));
-	
-	// Include output in the transaction on the hardware wallet
-	await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_TRANSACTION_INCLUDE_OUTPUT_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
-	
-		// Identifier
-		Buffer.from(OUTPUT_IDENTIFIER.getValue()),
-		
-		// Amount
-		Buffer.from(OUTPUT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
-		
-		// Switch type
-		Buffer.from(new Uint8Array([switchType]))
-	]));
-	
-	// Include input in the transaction on the hardware wallet
-	await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_TRANSACTION_INCLUDE_INPUT_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
-	
-		// Identifier
-		Buffer.from(INPUT_IDENTIFIER.getValue()),
-		
-		// Amount
-		Buffer.from((INPUT.plus(FEE)).toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
-		
-		// Switch type
-		Buffer.from(new Uint8Array([INPUT_SWITCH_TYPE]))
-	]));
 	
 	// While offset isn't a valid secret key
 	const offset = new Uint8Array(Crypto.BLINDING_FACTOR_LENGTH);
@@ -2488,13 +2605,79 @@ async function sendTransactionTest(hardwareWallet, extendedPrivateKey, switchTyp
 		// Fill offset with random values
 		crypto.getRandomValues(offset);
 		
-	} while(Secp256k1Zkp.isValidSecretKey(offset) === false);
+	} while(Secp256k1Zkp.isValidSecretKey(offset) !== true);
 	
 	// Log offset
 	console.log("Using offset: " + Common.toHexString(offset));
 	
-	// Apply offset to the transaction on the hardware wallet
-	await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_TRANSACTION_APPLY_OFFSET_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.from(offset));
+	// Start transaction twice to test secret nonce index
+	let secretNonceIndex = 0;
+	for(let i = 0; i < 2; ++i) {
+	
+		// Start transaction on the hardware wallet
+		await hardwareWallet.send(REQUEST_CLASS, REQUEST_START_TRANSACTION_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
+		
+			// Account
+			Buffer.from(ACCOUNT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32)),
+			
+			// Index
+			Buffer.from(INDEX.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32)),
+			
+			// Output
+			Buffer.from(OUTPUT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
+			
+			// Input
+			Buffer.from(INPUT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
+			
+			// Fee
+			Buffer.from(FEE.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
+			
+			// Secret nonce index
+			Buffer.from(new Uint8Array([secretNonceIndex])),
+			
+			// Address
+			Buffer.from((paymentProofType !== NO_PAYMENT_PROOF_TYPE) ? receiverAddress : [])
+		]));
+		
+		// Include output in the transaction on the hardware wallet
+		await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_TRANSACTION_INCLUDE_OUTPUT_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
+		
+			// Identifier
+			Buffer.from(OUTPUT_IDENTIFIER.getValue()),
+			
+			// Amount
+			Buffer.from(OUTPUT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
+			
+			// Switch type
+			Buffer.from(new Uint8Array([switchType]))
+		]));
+		
+		// Include input in the transaction on the hardware wallet
+		await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_TRANSACTION_INCLUDE_INPUT_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
+		
+			// Identifier
+			Buffer.from(INPUT_IDENTIFIER.getValue()),
+			
+			// Amount
+			Buffer.from((INPUT.plus(FEE)).toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
+			
+			// Switch type
+			Buffer.from(new Uint8Array([INPUT_SWITCH_TYPE]))
+		]));
+		
+		// Apply offset to the transaction on the hardware wallet
+		const response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_TRANSACTION_APPLY_OFFSET_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.from(offset));
+		
+		// Check if response contains a secret nonce index
+		if(response["length"] > RESPONSE_DELIMITER_LENGTH) {
+		
+			// Get secret nonce index from response
+			secretNonceIndex = response[0];
+			
+			// Log secret nonce index
+			console.log("Secret nonce index: " + secretNonceIndex);
+		}
+	}
 	
 	// Get the output's blinding factor
 	const outputBlindingFactor = await Crypto.deriveSecretKey(extendedPrivateKey, OUTPUT, OUTPUT_IDENTIFIER, switchType);
@@ -2539,27 +2722,8 @@ async function sendTransactionTest(hardwareWallet, extendedPrivateKey, switchTyp
 	// Log transaction public nonce
 	console.log("Transaction public nonce: " + Common.toHexString(publicNonce));
 	
-	// Get the transaction encrypted secret nonce from the hardware wallet
-	response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_TRANSACTION_GET_ENCRYPTED_SECRET_NONCE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER);
-
-	// Get encrypted secret nonce from response
-	const encryptedSecretNonce = response.subarray(0, response["length"] - RESPONSE_DELIMITER_LENGTH);
-	
-	// Log transaction encrypted secret nonce
-	console.log("Transaction encrypted secret nonce: " + Common.toHexString(encryptedSecretNonce));
-	
-	// Set the transaction encrypted secret nonce on the hardware wallet
-	await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_TRANSACTION_SET_ENCRYPTED_SECRET_NONCE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.from(encryptedSecretNonce));
-	
 	// Get the message signature from the hardware wallet
-	response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_TRANSACTION_GET_MESSAGE_SIGNATURE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
-	
-		// Public key
-		Buffer.from(publicKey),
-		
-		// Message
-		Buffer.from((new TextEncoder()).encode(MESSAGE))
-	]));
+	response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_CONTINUE_TRANSACTION_GET_MESSAGE_SIGNATURE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.from((new TextEncoder()).encode(MESSAGE)));
 
 	// Remove response code from response
 	response = response.subarray(0, response["length"] - RESPONSE_DELIMITER_LENGTH);
@@ -2568,7 +2732,7 @@ async function sendTransactionTest(hardwareWallet, extendedPrivateKey, switchTyp
 	console.log("Message signature: " + Common.toHexString(response));
 	
 	// Check if message signature is invalid
-	if(Secp256k1Zkp.verifySingleSignerSignature(response, Blake2b.compute(Crypto.SINGLE_SIGNER_MESSAGE_LENGTH, (new TextEncoder()).encode(MESSAGE), new Uint8Array([])), Secp256k1Zkp.NO_PUBLIC_NONCE, publicKey, publicKey, false) === false) {
+	if(Secp256k1Zkp.verifySingleSignerSignature(response, Blake2b.compute(Crypto.SINGLE_SIGNER_MESSAGE_LENGTH, (new TextEncoder()).encode(MESSAGE), new Uint8Array([])), Secp256k1Zkp.NO_PUBLIC_NONCE, publicKey, publicKey, false) !== true) {
 	
 		// Log message
 		console.log("Invalid message signature");
@@ -2576,6 +2740,9 @@ async function sendTransactionTest(hardwareWallet, extendedPrivateKey, switchTyp
 		// Throw error
 		throw "Failed running send transaction test";
 	}
+	
+	// Log message
+	console.log("Verify that the account index on the device is: " + ACCOUNT.toFixed());
 	
 	// Check features
 	switch(features) {
@@ -2635,8 +2802,6 @@ async function sendTransactionTest(hardwareWallet, extendedPrivateKey, switchTyp
 				new Uint8Array(relativeHeight.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT16))
 			]);
 			
-			console.log(Common.toHexString(kernelInformation));
-			
 			// Check if not using Speculos
 			if(hardwareWallet instanceof SpeculosTransport === false) {
 			
@@ -2681,7 +2846,7 @@ async function sendTransactionTest(hardwareWallet, extendedPrivateKey, switchTyp
 		if(hardwareWallet instanceof SpeculosTransport === false) {
 		
 			// Log message
-			console.log("Verify that the transaction's proof address on the device is: " + receiverAddress);
+			console.log("Verify that the transaction's recipient payment proof address on the device is: " + receiverAddress);
 		}
 	}
 	
@@ -2699,95 +2864,189 @@ async function sendTransactionTest(hardwareWallet, extendedPrivateKey, switchTyp
 	// Check if using Speculos
 	if(hardwareWallet instanceof SpeculosTransport === true) {
 	
-		// Set automation
-		await setAutomation({
-			"version": 1,
-			"rules": [
-				{
-					"text": "Finalize sending",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"regexp": "^Amount.*$",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"regexp": "^Fee.*$",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"regexp": "^Kernel Features.*$",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"regexp": "^Lock Height.*$",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"regexp": "^Relative Height.*$",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"text": "No payment",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"regexp": "^Proof Address.*$",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"text": "Approve",
-					"actions": [
-					
-						// Push both
-						["button", 1, true],
-						["button", 2, true],
-						["button", 1, false],
-						["button", 2, false]
-					]
-				}
-			]
-		});
+		// Check if using a Nano hardware wallet
+		if(hardwareWallet["deviceModel"].toLowerCase().startsWith("nano") === true) {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"regexp": "^.*end$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Account.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Amount.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Fee.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Kernel Features.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Lock Height.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Relative Height.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "No payment",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Proof Address.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "Approve",
+						"actions": [
+						
+							// Push both
+							["button", 1, true],
+							["button", 2, true],
+							["button", 1, false],
+							["button", 2, false]
+						]
+					}
+				]
+			});
+		}
+		
+		// Otherwise
+		else {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "Tap to continue",
+						"actions": [
+						
+							// Clear confirmed
+							["setbool", "confirmed", false],
+							
+							// Touch
+							["finger", 200, 500, false],
+							["finger", 200, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Swipe to review",
+						"actions": [
+						
+							// Clear confirmed
+							["setbool", "confirmed", false],
+							
+							// Touch
+							["finger", 100, 500, false],
+							["finger", 100, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Hold to send",
+						"conditions": [
+						
+							// Not confirmed
+							["confirmed", false]
+						],
+						"actions": [
+						
+							// Set confirmed
+							["setbool", "confirmed", true],
+							
+							// Touch start
+							["finger", 250, 500, true]
+						]
+					},
+					{
+						"text": "Reject",
+						"conditions": [
+						
+							// Not confirmed
+							["confirmed", false]
+						],
+						"actions": [
+						
+							// Touch
+							["finger", 399, 586, false],
+							["finger", 399, 586, true],
+							["finger", 399, 586, false]
+						]
+					},
+					{
+						"text": "TRANSACTION",
+						"conditions": [
+						
+							// Is confirmed
+							["confirmed", true]
+						],
+						"actions": [
+						
+							// Touch end
+							["finger", 200, 500, false]
+						]
+					}
+				]
+			});
+		}
 	}
 	
 	// Get signature for the transaction from the hardware wallet
@@ -2813,7 +3072,7 @@ async function sendTransactionTest(hardwareWallet, extendedPrivateKey, switchTyp
 	console.log("Transaction signature: " + Common.toHexString(response));
 	
 	// Check if signature is invalid
-	if(Secp256k1Zkp.verifySingleSignerSignature(response, SlateKernel.signatureMessage(features, FEE, lockHeight, relativeHeight), Secp256k1Zkp.NO_PUBLIC_NONCE, publicKey, publicKey, true) === false) {
+	if(Secp256k1Zkp.verifySingleSignerSignature(response, SlateKernel.signatureMessage(features, FEE, lockHeight, relativeHeight), Secp256k1Zkp.NO_PUBLIC_NONCE, publicKey, publicKey, true) !== true) {
 	
 		// Log message
 		console.log("Invalid transaction signature");
@@ -2836,13 +3095,13 @@ async function getMqsTimestampSignatureTest(hardwareWallet, extendedPrivateKey) 
 	const TIMESTAMP = new BigNumber(Math.round(Math.random() * Common.UINT32_MAX_VALUE));
 	
 	// Log timestamp
-	console.log("Using timestamp: " + TIMESTAMP.toFixed());
+	console.log("Using timestamp: " + TIMESTAMP.multipliedBy(Common.MILLISECONDS_IN_A_SECOND).toFixed());
 	
 	// Get MQS private key from the extended private key
 	const mqsPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
 	
 	// Get timestamp hash
-	const timestampHash = new Uint8Array(sha256.arrayBuffer((new TextEncoder()).encode(TIMESTAMP.toFixed())));
+	const timestampHash = new Uint8Array(sha256.arrayBuffer((new TextEncoder()).encode(TIMESTAMP.multipliedBy(Common.MILLISECONDS_IN_A_SECOND).toFixed())));
 	
 	// Set expected MQS timestamp signature as the timestamp hash signed by the MQS private key
 	const expectedMqsTimestampSignature = Secp256k1Zkp.createMessageHashSignature(timestampHash, mqsPrivateKey);
@@ -2860,7 +3119,10 @@ async function getMqsTimestampSignatureTest(hardwareWallet, extendedPrivateKey) 
 	if(hardwareWallet instanceof SpeculosTransport === false) {
 	
 		// Log message
-		console.log("Verify that the timestamp's time and date on the device is: " + date.getUTCHours().toFixed().padStart(2, "0") + ":" + date.getUTCMinutes().toFixed().padStart(2, "0") + ":" + date.getUTCSeconds().toFixed().padStart(2, "0") + " on " + date.getUTCFullYear().toFixed() + "-" + (date.getUTCMonth() + 1).toFixed().padStart(2, "0") + "-" + date.getUTCDate().toFixed().padStart(2, "0") + " UTC" + ((timeZoneOffset > 0) ? "-" : "+") + (timeZoneOffset / Common.MINUTES_IN_AN_HOUR).toFixed().padStart(2, "0") + ":" + (timeZoneOffset % Common.MINUTES_IN_AN_HOUR).toFixed().padStart(2, "0"));
+		console.log("Verify that the account index on the device is: " + ACCOUNT.toFixed());
+		
+		// Log message
+		console.log("Verify that the timestamp's time and date on the device is: " + date.getUTCHours().toFixed().padStart(2, "0") + ":" + date.getUTCMinutes().toFixed().padStart(2, "0") + ":" + date.getUTCSeconds().toFixed().padStart(2, "0") + " on " + date.getUTCFullYear().toFixed() + "-" + (date.getUTCMonth() + 1).toFixed().padStart(2, "0") + "-" + date.getUTCDate().toFixed().padStart(2, "0") + " UTC" + ((timeZoneOffset > 0) ? "-" : "+") + Math.floor(Math.abs(timeZoneOffset) / Common.MINUTES_IN_AN_HOUR).toFixed().padStart(2, "0") + ":" + (Math.abs(timeZoneOffset) % Common.MINUTES_IN_AN_HOUR).toFixed().padStart(2, "0"));
 	}
 	
 	// Convert time zone offset to the correct format
@@ -2871,45 +3133,166 @@ async function getMqsTimestampSignatureTest(hardwareWallet, extendedPrivateKey) 
 	// Check if using Speculos
 	if(hardwareWallet instanceof SpeculosTransport === true) {
 	
-		// Set automation
-		await setAutomation({
-			"version": 1,
-			"rules": [
-				{
-					"text": "timestamp?",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"regexp": "^Time And Date.*$",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"text": "Approve",
-					"actions": [
-					
-						// Push both
-						["button", 1, true],
-						["button", 2, true],
-						["button", 1, false],
-						["button", 2, false]
-					]
-				}
-			]
-		});
+		// Check if using a Nano hardware wallet
+		if(hardwareWallet["deviceModel"].toLowerCase().startsWith("nano") === true) {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "challenge?",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Account.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Time And Date.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "The host will",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "listen for the",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "transactions",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "Approve",
+						"actions": [
+						
+							// Push both
+							["button", 1, true],
+							["button", 2, true],
+							["button", 1, false],
+							["button", 2, false]
+						]
+					}
+				]
+			});
+		}
+		
+		// Otherwise
+		else {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "Tap to continue",
+						"actions": [
+						
+							// Clear confirmed
+							["setbool", "confirmed", false],
+							
+							// Touch
+							["finger", 200, 500, false],
+							["finger", 200, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Swipe to review",
+						"actions": [
+						
+							// Clear confirmed
+							["setbool", "confirmed", false],
+							
+							// Touch
+							["finger", 100, 500, false],
+							["finger", 100, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Hold to sign",
+						"conditions": [
+						
+							// Not confirmed
+							["confirmed", false]
+						],
+						"actions": [
+						
+							// Set confirmed
+							["setbool", "confirmed", true],
+							
+							// Touch start
+							["finger", 250, 500, true]
+						]
+					},
+					{
+						"text": "Reject",
+						"conditions": [
+						
+							// Not confirmed
+							["confirmed", false]
+						],
+						"actions": [
+						
+							// Touch
+							["finger", 399, 586, false],
+							["finger", 399, 586, true],
+							["finger", 399, 586, false]
+						]
+					},
+					{
+						"text": "CHALLENGE",
+						"conditions": [
+						
+							// Is confirmed
+							["confirmed", true]
+						],
+						"actions": [
+						
+							// Touch end
+							["finger", 200, 500, false]
+						]
+					}
+				]
+			});
+		}
 	}
 	
-	// Get the MQS timestamp signature from the hardware wallet
-	let response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_GET_MQS_TIMESTAMP_SIGNATURE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
+	// Get the MQS challenge signature from the hardware wallet
+	let response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_GET_MQS_CHALLENGE_SIGNATURE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
 				
 		// Account
 		Buffer.from(ACCOUNT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32)),
@@ -2918,7 +3301,7 @@ async function getMqsTimestampSignatureTest(hardwareWallet, extendedPrivateKey) 
 		Buffer.from(INDEX.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32)),
 		
 		// Timestamp
-		Buffer.from(TIMESTAMP.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
+		Buffer.from(TIMESTAMP.multipliedBy(Common.MILLISECONDS_IN_A_SECOND).toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
 		
 		// Time zone offset
 		Buffer.from(new Uint8Array(timeZoneOffsetBuffer))
@@ -2944,53 +3327,248 @@ async function getMqsTimestampSignatureTest(hardwareWallet, extendedPrivateKey) 
 	console.log("Passed getting MQS timestamp signature test");
 }
 
-// Get Tor certificate signature test
-async function getTorCertificateSignatureTest(hardwareWallet, extendedPrivateKey, addressType) {
+// Get MQS default challenge signature test
+async function getMqsDefaultChallengeSignatureTest(hardwareWallet, extendedPrivateKey) {
 
 	// Log message
-	console.log("Running get Tor certificate signature test");
+	console.log("Running get MQS default challenge signature test");
 	
-	// Certificate header length
-	const CERTIFICATE_HEADER_LENGTH = 32;
+	// Get MQS private key from the extended private key
+	const mqsPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
 	
-	// Certificate expiration offset
-	const CERTIFICATE_EXPIRATION_OFFSET = CERTIFICATE_HEADER_LENGTH + 2;
+	// Get default challenge hash
+	const defaultChallengeHash = new Uint8Array(sha256.arrayBuffer((new TextEncoder()).encode(Mqs.DEFAULT_CHALLENGE)));
 	
-	// Certificate public key offset
-	const CERTIFICATE_PUBLIC_KEY_OFFSET = CERTIFICATE_HEADER_LENGTH + 7;
+	// Set expected MQS default challenge signature as the default challenge hash signed by the MQS private key
+	const expectedMqsDefaultChallengeSignature = Secp256k1Zkp.createMessageHashSignature(defaultChallengeHash, mqsPrivateKey);
 	
-	// Certificate signing public key offset
-	const CERTIFICATE_SIGNING_PUBLIC_KEY_OFFSET = CERTIFICATE_HEADER_LENGTH + 44;
+	// Check if not using Speculos
+	if(hardwareWallet instanceof SpeculosTransport === false) {
 	
-	// Certificate signature offset
-	const CERTIFICATE_SIGNATURE_OFFSET = CERTIFICATE_HEADER_LENGTH + 76;
+		// Log message
+		console.log("Verify that the account index on the device is: " + ACCOUNT.toFixed());
+	}
 	
-	// Certificate expiration to epoch time scalar
-	const CERTIFICATE_EXPIRATION_TO_EPOCH_TIME_SCALAR = 60 * 60;
+	// Check if using Speculos
+	if(hardwareWallet instanceof SpeculosTransport === true) {
 	
-	// Certificate (contents of an ed25519_signing_cert file created with the command `tor --keygen --SigningKeyLifetime '6 months'`)
-	const CERTIFICATE = Common.fromHexString("3d3d206564323535313976312d636572743a207479706534203d3d0000000000010400070003019e5fd5f3a704fb52aa3e54a835e12ae102d0b44b785f239467a1523ffd4582410100200400b3ee07b33145c47278e7f35468247a4d13905595fe98a533f1b5120609229429fafef1e44a3f25add4570fb3bd0806a9b6a6afeaf32fffd3a40152e5abb6e763069e76ceec0b4027d8a88e37443d304ef963003d44c48c27235f71494778d60d");
+		// Check if using a Nano hardware wallet
+		if(hardwareWallet["deviceModel"].toLowerCase().startsWith("nano") === true) {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "challenge?",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Account.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Default Challenge.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "The host will",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "listen for the",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "transactions",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "Approve",
+						"actions": [
+						
+							// Push both
+							["button", 1, true],
+							["button", 2, true],
+							["button", 1, false],
+							["button", 2, false]
+						]
+					}
+				]
+			});
+		}
+		
+		// Otherwise
+		else {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "Tap to continue",
+						"actions": [
+						
+							// Clear confirmed
+							["setbool", "confirmed", false],
+							
+							// Touch
+							["finger", 200, 500, false],
+							["finger", 200, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Swipe to review",
+						"actions": [
+						
+							// Clear confirmed
+							["setbool", "confirmed", false],
+							
+							// Touch
+							["finger", 100, 500, false],
+							["finger", 100, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Hold to sign",
+						"conditions": [
+						
+							// Not confirmed
+							["confirmed", false]
+						],
+						"actions": [
+						
+							// Set confirmed
+							["setbool", "confirmed", true],
+							
+							// Touch start
+							["finger", 250, 500, true]
+						]
+					},
+					{
+						"text": "Reject",
+						"conditions": [
+						
+							// Not confirmed
+							["confirmed", false]
+						],
+						"actions": [
+						
+							// Touch
+							["finger", 399, 586, false],
+							["finger", 399, 586, true],
+							["finger", 399, 586, false]
+						]
+					},
+					{
+						"text": "CHALLENGE",
+						"conditions": [
+						
+							// Is confirmed
+							["confirmed", true]
+						],
+						"actions": [
+						
+							// Touch end
+							["finger", 200, 500, false]
+						]
+					}
+				]
+			});
+		}
+	}
 	
-	// Get Tor private key from the extended private key
-	const torPrivateKey = await Crypto.addressKey(extendedPrivateKey, INDEX.toNumber());
+	// Get the MQS challenge signature from the hardware wallet
+	let response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_GET_MQS_CHALLENGE_SIGNATURE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
+				
+		// Account
+		Buffer.from(ACCOUNT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32)),
+		
+		// Index
+		Buffer.from(INDEX.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32))
+	]));
 	
-	// Get Tor public key from the Tor private key
-	const torPublicKey = Ed25519.publicKeyFromSecretKey(torPrivateKey);
+	// Remove response code from response
+	response = response.subarray(0, response["length"] - RESPONSE_DELIMITER_LENGTH);
 	
-	// Replace signing public key in certificate with the Tor public key
-	const certificate = Common.mergeArrays([CERTIFICATE.subarray(0, CERTIFICATE_SIGNING_PUBLIC_KEY_OFFSET), torPublicKey, CERTIFICATE.subarray(CERTIFICATE_SIGNING_PUBLIC_KEY_OFFSET + torPublicKey["length"])]);
+	// Log MQS default challenge signature
+	console.log("MQS default challenge signature: " + Common.toHexString(response));
 	
-	// Log certificate
-	console.log("Using certificate: " + Common.toHexString(CERTIFICATE));
+	// Check if MQS default challenge signature is invalid
+	if(Common.arraysAreEqual(response, expectedMqsDefaultChallengeSignature) === false) {
 	
-	// Get the expected Tor certificate signature from the certificate and Tor private key
-	const expectedTorCertificateSignature = Ed25519.sign(certificate.subarray(CERTIFICATE_HEADER_LENGTH, CERTIFICATE_SIGNATURE_OFFSET), torPrivateKey);
+		// Log message
+		console.log("Invalid MQS default challenge signature");
+		
+		// Throw error
+		throw "Failed running get MQS default challenge signature test";
+	}
 	
-	// Get certification's expiration
-	const expiration = certificate.subarray(CERTIFICATE_EXPIRATION_OFFSET, CERTIFICATE_EXPIRATION_OFFSET + Uint32Array["BYTES_PER_ELEMENT"]).slice().reverse();
+	// Log message
+	console.log("Passed getting MQS default challenge signature test");
+}
+
+// Get login signature test
+async function getLoginSignatureTest(hardwareWallet, extendedPrivateKey) {
+
+	// Log message
+	console.log("Running get login signature test");
 	
-	// Get expiration as a timestamp
-	const expirationTimestamp = (new Uint32Array(expiration["buffer"]))[0] * CERTIFICATE_EXPIRATION_TO_EPOCH_TIME_SCALAR;
+	// Identifier
+	const IDENTIFIER = "hardware wallet test";
+	
+	// Log identifier
+	console.log("Using identifier: " + IDENTIFIER);
+	
+	// Timestamp
+	const TIMESTAMP = new BigNumber(Math.round(Math.random() * Common.UINT32_MAX_VALUE));
+	
+	// Log timestamp
+	console.log("Using timestamp: " + TIMESTAMP.multipliedBy(Common.MILLISECONDS_IN_A_SECOND).toFixed());
+	
+	// Get login private key from the extended private key
+	const loginPrivateKey = await Crypto.loginKey(extendedPrivateKey);
+	
+	// Get timestamp and identifier hash
+	const timestampAndIdentifierHash = new Uint8Array(sha256.arrayBuffer(Common.mergeArrays([(new TextEncoder()).encode(TIMESTAMP.multipliedBy(Common.MILLISECONDS_IN_A_SECOND).toFixed()), (new TextEncoder()).encode(" "), (new TextEncoder()).encode(IDENTIFIER)])));
+	
+	// Set expected login public key to the login private key's public key
+	const expectedLoginPublicKey = Secp256k1Zkp.publicKeyFromSecretKey(loginPrivateKey);
+	
+	// Set expected login signature as the timestamp and identifier hash signed by the login private key
+	const expectedLoginSignature = Secp256k1Zkp.createMessageHashSignature(timestampAndIdentifierHash, loginPrivateKey);
 	
 	// Get time zone offset
 	const timeZoneOffset = (new Date()).getTimezoneOffset();
@@ -2999,41 +3577,19 @@ async function getTorCertificateSignatureTest(hardwareWallet, extendedPrivateKey
 	console.log("Using time zone offset: " + timeZoneOffset.toFixed());
 	
 	// Get timestamp as a date
-	const date = new Date((expirationTimestamp - timeZoneOffset * Common.SECONDS_IN_A_MINUTE) * Common.MILLISECONDS_IN_A_SECOND);
+	const date = new Date((TIMESTAMP.toNumber() - timeZoneOffset * Common.SECONDS_IN_A_MINUTE) * Common.MILLISECONDS_IN_A_SECOND);
 	
 	// Check if not using Speculos
 	if(hardwareWallet instanceof SpeculosTransport === false) {
 	
 		// Log message
-		console.log("Verify that the certificate expires on the device on: " + date.getUTCHours().toFixed().padStart(2, "0") + ":" + date.getUTCMinutes().toFixed().padStart(2, "0") + ":" + date.getUTCSeconds().toFixed().padStart(2, "0") + " on " + date.getUTCFullYear().toFixed() + "-" + (date.getUTCMonth() + 1).toFixed().padStart(2, "0") + "-" + date.getUTCDate().toFixed().padStart(2, "0") + " UTC" + ((timeZoneOffset > 0) ? "-" : "+") + (timeZoneOffset / Common.MINUTES_IN_AN_HOUR).toFixed().padStart(2, "0") + ":" + (timeZoneOffset % Common.MINUTES_IN_AN_HOUR).toFixed().padStart(2, "0"));
+		console.log("Verify that the account index on the device is: " + ACCOUNT.toFixed());
 		
-		// Check address type
-		switch(addressType) {
+		// Log message
+		console.log("Verify that the identifier is: " + IDENTIFIER);
 		
-			// Tor address type
-			case TOR_ADDRESS_TYPE:
-		
-				// Get certificate's address
-				var address = Tor.publicKeyToTorAddress(certificate.subarray(CERTIFICATE_PUBLIC_KEY_OFFSET, CERTIFICATE_PUBLIC_KEY_OFFSET + Crypto.ED25519_PUBLIC_KEY_LENGTH));
-				
-				// Log message
-				console.log("Verify that the certificate's Tor address on the device is: " + address);
-				
-				// Break
-				break;
-			
-			// Slatepack address type
-			case SLATEPACK_ADDRESS_TYPE:
-		
-				// Get certificate's address
-				var address = Slatepack.publicKeyToSlatepackAddress(certificate.subarray(CERTIFICATE_PUBLIC_KEY_OFFSET, CERTIFICATE_PUBLIC_KEY_OFFSET + Crypto.ED25519_PUBLIC_KEY_LENGTH));
-				
-				// Log message
-				console.log("Verify that the certificate's Slatepack address on the device is: " + address);
-				
-				// Break
-				break;
-		}
+		// Log message
+		console.log("Verify that the time and date on the device is: " + date.getUTCHours().toFixed().padStart(2, "0") + ":" + date.getUTCMinutes().toFixed().padStart(2, "0") + ":" + date.getUTCSeconds().toFixed().padStart(2, "0") + " on " + date.getUTCFullYear().toFixed() + "-" + (date.getUTCMonth() + 1).toFixed().padStart(2, "0") + "-" + date.getUTCDate().toFixed().padStart(2, "0") + " UTC" + ((timeZoneOffset > 0) ? "-" : "+") + Math.floor(Math.abs(timeZoneOffset) / Common.MINUTES_IN_AN_HOUR).toFixed().padStart(2, "0") + ":" + (Math.abs(timeZoneOffset) % Common.MINUTES_IN_AN_HOUR).toFixed().padStart(2, "0"));
 	}
 	
 	// Convert time zone offset to the correct format
@@ -3044,87 +3600,197 @@ async function getTorCertificateSignatureTest(hardwareWallet, extendedPrivateKey
 	// Check if using Speculos
 	if(hardwareWallet instanceof SpeculosTransport === true) {
 	
-		// Set automation
-		await setAutomation({
-			"version": 1,
-			"rules": [
-				{
-					"text": "certificate?",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"regexp": "^Expires.*$",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"regexp": "^.+ress.*$",
-					"actions": [
-					
-						// Push right
-						["button", 2, true],
-						["button", 2, false]
-					]
-				},
-				{
-					"text": "Approve",
-					"actions": [
-					
-						// Push both
-						["button", 1, true],
-						["button", 2, true],
-						["button", 1, false],
-						["button", 2, false]
-					]
-				}
-			]
-		});
+		// Check if using a Nano hardware wallet
+		if(hardwareWallet["deviceModel"].toLowerCase().startsWith("nano") === true) {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "wallet?",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Account.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Identifier.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"regexp": "^Time And Date.*$",
+						"actions": [
+						
+							// Push right
+							["button", 2, true],
+							["button", 2, false]
+						]
+					},
+					{
+						"text": "Approve",
+						"actions": [
+						
+							// Push both
+							["button", 1, true],
+							["button", 2, true],
+							["button", 1, false],
+							["button", 2, false]
+						]
+					}
+				]
+			});
+		}
+		
+		// Otherwise
+		else {
+		
+			// Set automation
+			await setAutomation({
+				"version": 1,
+				"rules": [
+					{
+						"text": "Tap to continue",
+						"actions": [
+						
+							// Clear confirmed
+							["setbool", "confirmed", false],
+							
+							// Touch
+							["finger", 200, 500, false],
+							["finger", 200, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Swipe to review",
+						"actions": [
+						
+							// Clear confirmed
+							["setbool", "confirmed", false],
+							
+							// Touch
+							["finger", 100, 500, false],
+							["finger", 100, 500, true],
+							["finger", 200, 500, false]
+						]
+					},
+					{
+						"text": "Hold to login",
+						"conditions": [
+						
+							// Not confirmed
+							["confirmed", false]
+						],
+						"actions": [
+						
+							// Set confirmed
+							["setbool", "confirmed", true],
+							
+							// Touch start
+							["finger", 250, 500, true]
+						]
+					},
+					{
+						"text": "Reject",
+						"conditions": [
+						
+							// Not confirmed
+							["confirmed", false]
+						],
+						"actions": [
+						
+							// Touch
+							["finger", 399, 586, false],
+							["finger", 399, 586, true],
+							["finger", 399, 586, false]
+						]
+					},
+					{
+						"text": "WALLET",
+						"conditions": [
+						
+							// Is confirmed
+							["confirmed", true]
+						],
+						"actions": [
+						
+							// Touch end
+							["finger", 200, 500, false]
+						]
+					}
+				]
+			});
+		}
 	}
 	
-	// Get the Tor certificate signature from the hardware wallet
-	let response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_GET_TOR_CERTIFICATE_SIGNATURE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
+	// Get the login challenge signature from the hardware wallet
+	let response = await hardwareWallet.send(REQUEST_CLASS, REQUEST_GET_LOGIN_CHALLENGE_SIGNATURE_INSTRUCTION, NO_PARAMETER, NO_PARAMETER, Buffer.concat([
 				
 		// Account
 		Buffer.from(ACCOUNT.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32)),
 		
-		// Index
-		Buffer.from(INDEX.toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT32)),
-		
-		// Certificate
-		Buffer.from(certificate.subarray(CERTIFICATE_HEADER_LENGTH, CERTIFICATE_SIGNATURE_OFFSET)),
+		// Timestamp
+		Buffer.from(TIMESTAMP.multipliedBy(Common.MILLISECONDS_IN_A_SECOND).toBytes(BigNumber.LITTLE_ENDIAN, Common.BYTES_IN_A_UINT64)),
 		
 		// Time zone offset
-		Buffer.from(new Uint8Array(timeZoneOffsetBuffer))
+		Buffer.from(new Uint8Array(timeZoneOffsetBuffer)),
+		
+		// Identifier
+		Buffer.from((new TextEncoder()).encode(IDENTIFIER))
 	]));
 	
 	// Remove response code from response
 	response = response.subarray(0, response["length"] - RESPONSE_DELIMITER_LENGTH);
 	
-	// Log Tor certificate signature
-	console.log("Tor certificate signature: " + Common.toHexString(response));
+	// Get login public key from response
+	const loginPublicKey = response.subarray(0, Crypto.SECP256K1_PUBLIC_KEY_LENGTH);
 	
-	// Check if Tor certificate signature is invalid
-	if(Common.arraysAreEqual(response, expectedTorCertificateSignature) === false) {
+	// Get login challenge signature from response
+	const loginChallengeSignature = response.subarray(Crypto.SECP256K1_PUBLIC_KEY_LENGTH);
+	
+	// Log login public key
+	console.log("Login public key: " + Common.toHexString(loginPublicKey));
+	
+	// Check if login public key is invalid
+	if(Common.arraysAreEqual(loginPublicKey, expectedLoginPublicKey) === false) {
 	
 		// Log message
-		console.log("Invalid Tor certificate signature");
+		console.log("Invalid login public key");
 		
 		// Throw error
-		throw "Failed running get Tor certificate signature test";
+		throw "Failed running get login signature test";
 	}
 	
-	// Log signed Tor certificate
-	console.log("Signed Tor certificate: " + Common.toHexString(certificate.subarray(0, CERTIFICATE_SIGNATURE_OFFSET)) + Common.toHexString(response));
+	// Log login signature
+	console.log("Login signature: " + Common.toHexString(loginChallengeSignature));
+	
+	// Check if login signature is invalid
+	if(Common.arraysAreEqual(loginChallengeSignature, expectedLoginSignature) === false) {
+	
+		// Log message
+		console.log("Invalid login signature");
+		
+		// Throw error
+		throw "Failed running get login signature test";
+	}
 	
 	// Log message
-	console.log("Passed getting Tor certificate signature test");
+	console.log("Passed getting login signature test");
 }
