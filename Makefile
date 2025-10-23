@@ -79,6 +79,7 @@ ICON_NANOX = "icons/nanox_app.gif"
 ICON_NANOSP = "icons/nanosplus_app.gif"
 ICON_STAX = "icons/stax_app.png"
 ICON_FLEX = "icons/flex_app.png"
+ICON_APEX_P = "icons/apex_p_app.png"
 
 ########################################
 # Application communication interfaces #

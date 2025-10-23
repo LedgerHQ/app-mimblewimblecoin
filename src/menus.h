@@ -216,6 +216,10 @@ void showProgressBar(const uint8_t percent);
 	#define ICON_APP_REVIEW C_icon_mimblewimble_coin_64px
 	#define ICON_APP_HOME C_icon_mimblewimble_coin_64px
 	#define ICON_APP_WARNING LARGE_WARNING_ICON
+#elif defined(TARGET_APEX_P)
+	#define ICON_APP_REVIEW C_icon_mimblewimble_coin_48px
+	#define ICON_APP_HOME C_icon_mimblewimble_coin_48px
+	#define ICON_APP_WARNING LARGE_WARNING_ICON
 #endif
 
 #endif
