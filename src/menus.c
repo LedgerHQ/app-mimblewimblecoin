@@ -171,10 +171,10 @@ static nbgl_pageInfoLongPress_t approveTransactionMenuInfoLongPress;
 #ifdef HAVE_BAGL
 
 // Main menu currency name ready screen
-static UX_STEP_NOCB(mainMenuCurrencyNameReadyScreen, pnn, {&CURRENCY_ICON_DETAILS, CURRENCY_NAME, "is ready"});
+static UX_STEP_NOCB(mainMenuCurrencyNameReadyScreen, pnn, {&ICON_APP_HOME, CURRENCY_NAME, "is ready"});
 
 // Main menu ready screen
-static UX_STEP_NOCB(mainMenuReadyScreen, pnn, {&CURRENCY_ICON_DETAILS, "Application", "is ready"});
+static UX_STEP_NOCB(mainMenuReadyScreen, pnn, {&ICON_APP_HOME, "Application", "is ready"});
 
 	// Check if device has low height
 	#if BAGL_HEIGHT < 64
@@ -1079,7 +1079,7 @@ void showMenu(enum Menu menu) {
 		case MAIN_MENU:
 
 			// Show main menu
-			nbgl_useCaseHome(CURRENCY_NAME, &CURRENCY_ICON_DETAILS, "Application is ready", false, showAboutMenu, exitApplication);
+			nbgl_useCaseHome(CURRENCY_NAME, &ICON_APP_HOME, "Application is ready", false, showAboutMenu, exitApplication);
 
 			// Break
 			break;
@@ -1088,7 +1088,7 @@ void showMenu(enum Menu menu) {
 		case EXPORT_ROOT_PUBLIC_KEY_MENU:
 
 			// Show export root public key menu
-			nbgl_useCaseReviewStart(&CURRENCY_ICON_DETAILS, "Export root public\nkey?", NULL, "Deny", exportRootPublicKeyMenuContinueCallback, exportRootPublicKeyMenuConfirmRejectCallback);
+			nbgl_useCaseReviewStart(&ICON_APP_REVIEW, "Export root public\nkey?", NULL, "Deny", exportRootPublicKeyMenuContinueCallback, exportRootPublicKeyMenuConfirmRejectCallback);
 
 			// Break
 			break;
@@ -1097,7 +1097,7 @@ void showMenu(enum Menu menu) {
 		case VERIFY_ROOT_PUBLIC_KEY_MENU:
 
 			// Show verify root public key menu
-			nbgl_useCaseReviewStart(&CURRENCY_ICON_DETAILS, "Verify root public\nkey", NULL, "Cancel", verifyRootPublicKeyMenuContinueCallback, verifyRootPublicKeyMenuRejectCallback);
+			nbgl_useCaseReviewStart(&ICON_APP_REVIEW, "Verify root public\nkey", NULL, "Cancel", verifyRootPublicKeyMenuContinueCallback, verifyRootPublicKeyMenuRejectCallback);
 
 			// Break
 			break;
@@ -1106,7 +1106,7 @@ void showMenu(enum Menu menu) {
 		case VERIFY_ADDRESS_MENU:
 
 			// Show verify address menu
-			nbgl_useCaseReviewStart(&CURRENCY_ICON_DETAILS, verifyAddressLineBuffer, NULL, "Cancel", verifyAddressMenuContinueCallback, verifyAddressMenuRejectCallback);
+			nbgl_useCaseReviewStart(&ICON_APP_REVIEW, verifyAddressLineBuffer, NULL, "Cancel", verifyAddressMenuContinueCallback, verifyAddressMenuRejectCallback);
 
 			// Break
 			break;
@@ -1115,7 +1115,7 @@ void showMenu(enum Menu menu) {
 		case SIGN_MQS_CHALLENGE_MENU:
 
 			// Show sign MQS challenge menu
-			nbgl_useCaseReviewStart(&CURRENCY_ICON_DETAILS, signChallengeLineBuffer, NULL, "Deny", signMqsChallengeMenuContinueCallback, signMqsChallengeMenuConfirmRejectCallback);
+			nbgl_useCaseReviewStart(&ICON_APP_REVIEW, signChallengeLineBuffer, NULL, "Deny", signMqsChallengeMenuContinueCallback, signMqsChallengeMenuConfirmRejectCallback);
 
 			// Break
 			break;
@@ -1124,7 +1124,7 @@ void showMenu(enum Menu menu) {
 		case SIGN_LOGIN_CHALLENGE_MENU:
 
 			// Show sign login challenge menu
-			nbgl_useCaseReviewStart(&CURRENCY_ICON_DETAILS, "Login with\nwallet?", NULL, "Deny", signLoginChallengeMenuContinueCallback, signLoginChallengeMenuConfirmRejectCallback);
+			nbgl_useCaseReviewStart(&ICON_APP_REVIEW, "Login with\nwallet?", NULL, "Deny", signLoginChallengeMenuContinueCallback, signLoginChallengeMenuConfirmRejectCallback);
 
 			// Break
 			break;
@@ -1133,7 +1133,7 @@ void showMenu(enum Menu menu) {
 		case APPROVE_TRANSACTION_MENU:
 
 			// Show approve transaction menu
-			nbgl_useCaseReviewStart(&CURRENCY_ICON_DETAILS, approveTransactionLineBuffer, NULL, "Deny", approveTransactionMenuContinueCallback, approveTransactionMenuConfirmRejectCallback);
+			nbgl_useCaseReviewStart(&ICON_APP_REVIEW, approveTransactionLineBuffer, NULL, "Deny", approveTransactionMenuContinueCallback, approveTransactionMenuConfirmRejectCallback);
 
 			// Break
 			break;
@@ -1238,7 +1238,7 @@ void exportRootPublicKeyMenuContinueCallback(void) {
 	exportRootPublicKeyMenuTagValueList.wrapping = true;
 
 	// Set export root public key menu info long press
-	exportRootPublicKeyMenuInfoLongPress.icon = &CURRENCY_ICON_DETAILS;
+	exportRootPublicKeyMenuInfoLongPress.icon = &ICON_APP_REVIEW;
 	exportRootPublicKeyMenuInfoLongPress.text = "Export root public\nkey?";
 	exportRootPublicKeyMenuInfoLongPress.longPressText = "Hold to export";
 
@@ -1511,7 +1511,7 @@ void signMqsChallengeMenuContinueCallback(void) {
 	signMqsChallengeMenuTagValueList.wrapping = true;
 
 	// Set sign MQS challenge menu info long press
-	signMqsChallengeMenuInfoLongPress.icon = &CURRENCY_ICON_DETAILS;
+	signMqsChallengeMenuInfoLongPress.icon = &ICON_APP_REVIEW;
 	signMqsChallengeMenuInfoLongPress.text = signChallengeLineBuffer;
 	signMqsChallengeMenuInfoLongPress.longPressText = "Hold to sign";
 
@@ -1586,7 +1586,7 @@ void signLoginChallengeMenuContinueCallback(void) {
 	signLoginChallengeMenuTagValueList.wrapping = true;
 
 	// Set sign login challenge menu info long press
-	signLoginChallengeMenuInfoLongPress.icon = &CURRENCY_ICON_DETAILS;
+	signLoginChallengeMenuInfoLongPress.icon = &ICON_APP_REVIEW;
 	signLoginChallengeMenuInfoLongPress.text = "Login with\nwallet?";
 	signLoginChallengeMenuInfoLongPress.longPressText = "Hold to login";
 
@@ -1689,7 +1689,7 @@ void approveTransactionMenuContinueCallback(void) {
 	approveTransactionMenuTagValueList.wrapping = true;
 
 	// Set approve transaction menu info long press
-	approveTransactionMenuInfoLongPress.icon = &CURRENCY_ICON_DETAILS;
+	approveTransactionMenuInfoLongPress.icon = &ICON_APP_REVIEW;
 	approveTransactionMenuInfoLongPress.text = approveTransactionLineBuffer;
 	approveTransactionMenuInfoLongPress.longPressText = approveButtonLineBuffer;
 
