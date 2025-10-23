@@ -208,5 +208,14 @@ void showMenu(const enum Menu menu);
 // Show progress bar
 void showProgressBar(const uint8_t percent);
 
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+	#define ICON_APP_REVIEW C_icon_mimblewimble_coin_14px
+	#define ICON_APP_HOME C_icon_mimblewimble_coin_14px
+	#define ICON_APP_WARNING C_icon_warning
+#elif defined(TARGET_STAX) || defined(TARGET_FLEX)
+	#define ICON_APP_REVIEW C_icon_mimblewimble_coin_64px
+	#define ICON_APP_HOME C_icon_mimblewimble_coin_64px
+	#define ICON_APP_WARNING LARGE_WARNING_ICON
+#endif
 
 #endif
