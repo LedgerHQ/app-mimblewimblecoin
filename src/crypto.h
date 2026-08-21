@@ -107,7 +107,7 @@ void commitValue(volatile uint8_t *commitment, const uint64_t value, const uint8
 void getRewindNonce(volatile uint8_t *rewindNonce, const uint32_t account, const uint8_t *commitment);
 
 // Get private nonce
-void getPrivateNonce(volatile uint8_t *privateNonce, const uint32_t account, const uint8_t *commitment);
+void getPrivateNonce(volatile uint8_t *privateNonce, const uint32_t account, const uint8_t *commitment, const uint8_t *proofMessage);
 
 // Get address private key
 void getAddressPrivateKey(volatile cx_ecfp_private_key_t *addressPrivateKey, const uint32_t account, const uint32_t index, const cx_curve_t curve);

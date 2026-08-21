@@ -145,6 +145,13 @@ void processGetBulletproofComponentsRequest(unsigned short *responseLength, __at
 		identifierPath[i] = os_swap_u32(identifierPath[i]);
 	}
 
+	// Go through all unused parts in the identifier path
+	for(size_t i = identifierDepth; i < ARRAYLEN(identifierPath); ++i) {
+
+		// Clear the unused part so it can't carry host-controlled data
+		identifierPath[i] = 0;
+	}
+
 	// Get value from data
 	uint64_t value;
 	memcpy(&value, &data[sizeof(account) + IDENTIFIER_SIZE], sizeof(value));
@@ -176,8 +183,13 @@ void processGetBulletproofComponentsRequest(unsigned short *responseLength, __at
 		[PROOF_MESSAGE_IDENTIFIER_INDEX] = identifierDepth,
 	};
 
-	// Set proof message's identifier value
-	memcpy(&proofMessage[PROOF_MESSAGE_IDENTIFIER_INDEX + sizeof(identifierDepth)], &data[sizeof(account) + sizeof(identifierDepth)], IDENTIFIER_SIZE - sizeof(identifierDepth));
+	// Go through all parts in the identifier path
+	for(size_t i = 0; i < ARRAYLEN(identifierPath); ++i) {
+
+		// Set proof message's identifier path part in big endian
+		const uint32_t part = os_swap_u32(identifierPath[i]);
+		memcpy(&proofMessage[PROOF_MESSAGE_IDENTIFIER_INDEX + sizeof(identifierDepth) + i * sizeof(part)], &part, sizeof(part));
+	}
 
 	// Initialize blinding factor
 	volatile uint8_t blindingFactor[BLINDING_FACTOR_SIZE];
@@ -271,7 +283,7 @@ void processGetBulletproofComponentsRequest(unsigned short *responseLength, __at
 #endif
 
 			// Get private nonce
-			getPrivateNonce(privateNonce, account, commitment);
+			getPrivateNonce(privateNonce, account, commitment, proofMessage);
 
 // Check if has NGBL
 #ifdef HAVE_NBGL
