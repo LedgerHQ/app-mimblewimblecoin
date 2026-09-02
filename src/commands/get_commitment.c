@@ -61,6 +61,13 @@ void processGetCommitmentRequest(unsigned short *responseLength, __attribute__((
 		identifierPath[i] = os_swap_u32(identifierPath[i]);
 	}
 
+	// Go through all unused parts in the identifier path
+	for(size_t i = identifierDepth; i < ARRAYLEN(identifierPath); ++i) {
+
+		// Clear the unused part so it can't carry host-controlled data
+		identifierPath[i] = 0;
+	}
+
 	// Get value from data
 	uint64_t value;
 	memcpy(&value, &data[sizeof(account) + IDENTIFIER_SIZE], sizeof(value));
