@@ -450,13 +450,16 @@ void getRewindNonce(volatile uint8_t *rewindNonce, const uint32_t account, const
 }
 
 // Get private nonce
-void getPrivateNonce(volatile uint8_t *privateNonce, const uint32_t account, const uint8_t *commitment) {
+void getPrivateNonce(volatile uint8_t *privateNonce, const uint32_t account, const uint8_t *commitment, const uint8_t *proofMessage) {
 
 	// Initialize private key
 	volatile cx_ecfp_private_key_t privateKey;
 
 	// Initialize private hash
 	volatile uint8_t privateHash[NONCE_SIZE];
+
+	// Initialize data
+	volatile uint8_t data[COMMITMENT_SIZE + PROOF_MESSAGE_SIZE];
 
 	// Begin try
 	BEGIN_TRY {
@@ -470,8 +473,16 @@ void getPrivateNonce(volatile uint8_t *privateNonce, const uint32_t account, con
 			// Get private hash from the private key
 			getBlake2b(privateHash, sizeof(privateHash), (uint8_t *)privateKey.d, privateKey.d_len, NULL, 0);
 
-			// Get private nonce from the private hash and the commitment
-			getBlake2b(privateNonce, NONCE_SIZE, (uint8_t *)privateHash, sizeof(privateHash), commitment, COMMITMENT_SIZE);
+			// Set data to the commitment and the proof message
+			memcpy((uint8_t *)data, commitment, COMMITMENT_SIZE);
+			memcpy((uint8_t *)&data[COMMITMENT_SIZE], proofMessage, PROOF_MESSAGE_SIZE);
+
+			// Get private nonce from the private hash and the data. Binding the
+			// proof message (it contains the output identifier) makes every
+			// distinct proof message produce distinct tau1/tau2 masks, so
+			// re-proving the same commitment with a different message can't leak
+			// the output's blinding factor.
+			getBlake2b(privateNonce, NONCE_SIZE, (uint8_t *)privateHash, sizeof(privateHash), (uint8_t *)data, sizeof(data));
 
 			// Check if private nonce isn't a valid secret key
 			if(!isValidSecp256k1PrivateKey((uint8_t *)privateNonce, NONCE_SIZE)) {
@@ -486,6 +497,9 @@ void getPrivateNonce(volatile uint8_t *privateNonce, const uint32_t account, con
 
 			// Clear the private hash
 			explicit_bzero((uint8_t *)privateHash, sizeof(privateHash));
+
+			// Clear the data
+			explicit_bzero((uint8_t *)data, sizeof(data));
 
 			// Clear the private key
 			explicit_bzero((cx_ecfp_private_key_t *)&privateKey, sizeof(privateKey));

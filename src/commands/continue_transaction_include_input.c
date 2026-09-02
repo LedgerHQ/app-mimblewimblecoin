@@ -51,6 +51,13 @@ void processContinueTransactionIncludeInputRequest(__attribute__((unused)) const
 		identifierPath[i] = os_swap_u32(identifierPath[i]);
 	}
 
+	// Go through all unused parts in the identifier path
+	for(size_t i = identifierDepth; i < ARRAYLEN(identifierPath); ++i) {
+
+		// Clear the unused part so it can't carry host-controlled data
+		identifierPath[i] = 0;
+	}
+
 	// Get value from data
 	uint64_t value;
 	memcpy(&value, &data[IDENTIFIER_SIZE], sizeof(value));
